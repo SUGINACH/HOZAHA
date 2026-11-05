@@ -13,6 +13,7 @@ def sha(ps): return hashlib.sha256(json.dumps([txt(p) for p in ps],ensure_ascii=
 cfg=json.loads(CFG.read_text(encoding="utf-8")); sid=str(cfg["session_id"])
 if not re.fullmatch(r"[A-Za-z0-9-]+",sid): raise SystemExit("Unsafe session id")
 base=ROOT/cfg["base_docx"]; out=ROOT/cfg["output_docx"]; report=ROOT/cfg["report_path"]; items=cfg["comments"]
+next_section=str(cfg.get("next_section","לא הוגדרה נקודת המשך בתצורת הסשן"))
 if not base.exists() or not items: raise SystemExit("Missing base DOCX or session comments")
 labels=[x["label"] for x in items]; nums=[int(x["p"]) for x in items]
 if len(set(labels))!=len(labels) or len(set(nums))!=len(nums): raise SystemExit("Duplicate comment labels or paragraph targets")
@@ -101,6 +102,6 @@ if log.exists():
         s+=f"- נוספו {len(added)} הערות Word: "+", ".join(f"{a['label']} (פסקה {a['p']})" for a in added)+".\n"
         s+=f"- מספר הערות כולל: {len(cs)}; מספר פסקאות: {len(ps2)}; גיבוב טקסט גוף ללא שינוי: {after}\n"
         s+="- לא נערך גוף כתב־היד ולא שונו הערות קודמות; נוספו עוגני הערות בלבד.\n"
-        s+=f"- דוח הסשן: {report.name}\n- נקודת המשך: P01684 ואילך; יש לבסס את הסשן הבא על {out.name}.\n"
+        s+=f"- דוח הסשן: {report.name}\n- נקודת המשך: {next_section}; יש לבסס את הסשן הבא על {out.name}.\n"
         log.write_text(s,encoding="utf-8")
 print(f"Created {out}: added {len(added)} session comments; total comments={len(cs)}; paragraphs={len(ps2)}; body SHA={after}")
