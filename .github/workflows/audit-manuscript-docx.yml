@@ -1,0 +1,44 @@
+name: Audit manuscript DOCX integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'audit/**'
+      - '.github/workflows/audit-manuscript-docx.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: audit-manuscript-docx
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Audit DOCX packages without modifying them
+        run: python audit/inspect_docx.py
+      - name: Commit audit report and update work log
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'יומן-דחיפות-והמשכיות.md'
+          if git diff --cached --quiet; then
+            echo "No audit report changes."
+            exit 0
+          fi
+          git commit -m "Add structural DOCX audit report"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
