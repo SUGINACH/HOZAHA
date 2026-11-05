@@ -17,7 +17,7 @@ next_section=str(cfg.get("next_section","לא הוגדרה נקודת המשך �
 if not base.exists() or not items: raise SystemExit("Missing base DOCX or session comments")
 labels=[x["label"] for x in items]; nums=[int(x["p"]) for x in items]
 if len(set(labels))!=len(labels) or len(set(nums))!=len(nums): raise SystemExit("Duplicate comment labels or paragraph targets")
-if any(not re.fullmatch(r"S-\d{8}-\d+", label) for label in labels): raise SystemExit("Invalid session comment label format")
+if any(not re.fullmatch(r"S-\d{8}-\d{2,}", label) for label in labels): raise SystemExit("Invalid session comment label format")
 with zipfile.ZipFile(base) as z:
     required={"word/document.xml","word/comments.xml","word/_rels/document.xml.rels","[Content_Types].xml"}
     if not required.issubset(z.namelist()): raise SystemExit("Base DOCX lacks Word comments package parts")
@@ -89,7 +89,7 @@ with zipfile.ZipFile(out) as z:
     after=sha(ps2)
     if after!=before or len(ps2)!=expected: raise SystemExit("Body text or paragraph count changed")
     all_labels=[]
-    label_pattern=re.compile(r"^\s*((?:E-\d{4}|S-\d{8}-\d+))\s*\|")
+    label_pattern=re.compile(r"^\s*((?:E-\d{4}|S-\d{8}-\d{2,}))\s*\|")
     for comment_text in ctexts:
         match=label_pattern.match(comment_text)
         if match: all_labels.append(match.group(1))
