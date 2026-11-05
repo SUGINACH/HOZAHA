@@ -224,7 +224,7 @@ def main():
         by_label=defaultdict(list)
         for c in final_doc.get("all_comments",[]):
             for label in re.findall(r"E-(\d{4})",c["text"]):
-                by_label[label].append(c)
+                by_label[f"E-{label}"].append(c)
         results=[]
         for item in sorted(gap_items,key=lambda x:int(x["seq"])):
             seq=int(item["seq"]); label=f"E-{seq:04d}"; matches=by_label.get(label,[])
