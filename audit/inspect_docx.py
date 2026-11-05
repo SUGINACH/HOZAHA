@@ -41,6 +41,7 @@ def inspect(path):
             body=doc.find(".//"+q("body"))
             paras=body.findall(q("p")) if body is not None else []
             ptexts=[txt(p) for p in paras]
+            d["paragraph_texts"]=ptexts
             d["paragraph_count"]=len(paras)
             d["body_text_sha256"]=hashlib.sha256(json.dumps(ptexts,ensure_ascii=False).encode()).hexdigest()
             rev=tag_counts(doc,["ins","del","moveFrom","moveTo","moveFromRangeStart","moveFromRangeEnd","moveToRangeStart","moveToRangeEnd","pPrChange","rPrChange","tblPrChange","trPrChange","tcPrChange"])
@@ -54,11 +55,13 @@ def inspect(path):
                         anchors[cid][kind]+=1
                         if i not in anchors[cid]["paragraphs"]: anchors[cid]["paragraphs"].append(i)
             comments=[]
+            comment_xml_elements=[]
             if "word/comments.xml" in names:
                 root=ET.fromstring(z.read("word/comments.xml"))
                 for c in root.findall(".//"+q("comment")):
                     cid=c.get(q("id"),"?"); p=c.find(".//"+q("p"))
                     comments.append({"id":cid,"author":c.get(q("author"),""),"initials":c.get(q("initials"),""),"date":c.get(q("date"),""),"text":txt(c),"paraId":p.get(f"{{{W14}}}paraId") if p is not None else None,"anchor":anchors.get(cid,{"start":0,"end":0,"ref":0,"paragraphs":[]})})
+                    comment_xml_elements.append(c)
             d["comment_count"]=len(comments)
             d["comment_authors"]=dict(Counter(c["author"] or "(author missing)" for c in comments))
             nums=[int(c["id"]) for c in comments if c["id"].isdigit()]
@@ -82,7 +85,7 @@ def inspect(path):
             d["thread_metadata_records"]=len(threaded)
             d["thread_replies"]=[{"reply_id":pmap.get(e["paraId"],{}).get("id"),"reply_author":pmap.get(e["paraId"],{}).get("author"),"parent_id":pmap.get(e["parentParaId"],{}).get("id"),"parent_author":pmap.get(e["parentParaId"],{}).get("author"),"done":e["done"]} for e in threaded if e["parentParaId"]]
             fonts=Counter(); rtls=Counter(); langs=Counter()
-            for c in comments:
+            for c in comment_xml_elements:
                 for r in c.iter(q("r")):
                     rp=r.find(q("rPr"))
                     if rp is None: fonts["(no rPr)"]+=1; continue
@@ -166,6 +169,11 @@ def main():
         lines.append(f"- פסקאות יעד החוזרות בתוך האצווה: {json.dumps(repeated,ensure_ascii=False)}.")
     cross={p:seqs for p,seqs in all_targets.items() if len(seqs)>1}
     lines.append(f"- חזרות בין כל האצוות: {json.dumps(cross,ensure_ascii=False)}.")
+    for pnum,seqs in cross.items():
+        text_p=(base_doc.get("paragraph_texts") or [])
+        para_text=text_p[pnum-1] if 0 < pnum <= len(text_p) else "(הפסקה לא נמצאה)"
+        lines.append(f"- נוסח פסקה {pnum} (יעד E-{seqs[0]:04d}, E-{seqs[1]:04d}):")
+        lines.append("  " + para_text.replace("\\n"," "))
     lines.append("- מגבלת הבונה: כל הערה חדשה מעוגנת לכל הפסקה, והסקריפט מסרב להוסיף הערה אם הפסקה כבר מכילה סימון הערה כלשהו. לכן חזרה על אותה פסקה או עוגן קודם בפסקת היעד הם חסם בנייה, גם אם תוכן שתי ההערות נוגע למשפטים שונים.")
 
     lines += ["","## שרשורי תגובות",""]
