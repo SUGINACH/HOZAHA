@@ -231,10 +231,10 @@ with zipfile.ZipFile(BASE, "r") as zin:
     for seq, pnum, wid, severity, category, anchor_text in added_rows:
         para = paragraphs[pnum - 1]
         checks = (
-            para.xpath(f'./w:commentRangeStart[@w:id="{wid}"]', namespaces=NS),
-            para.xpath(f'./w:commentRangeEnd[@w:id="{wid}"]', namespaces=NS),
-            para.xpath(f'./w:commentReference[@w:id="{wid}"]', namespaces=NS),
-            comments.xpath(f'./w:comment[@w:id="{wid}"]', namespaces=NS),
+            [node for node in para.iter() if node.tag == q("commentRangeStart") and node.get(q("id")) == wid],
+            [node for node in para.iter() if node.tag == q("commentRangeEnd") and node.get(q("id")) == wid],
+            [node for node in para.iter() if node.tag == q("commentReference") and node.get(q("id")) == wid],
+            [node for node in comments.findall(q("comment")) if node.get(q("id")) == wid],
         )
         if any(len(part) != 1 for part in checks):
             raise SystemExit(f"Comment linkage integrity failed for E-{seq:04d}")
@@ -275,9 +275,9 @@ with zipfile.ZipFile(OUT, "r") as check:
     for seq, pnum, wid, severity, category, anchor_text in added_rows:
         target_para = final_paragraphs[pnum - 1]
         checks = (
-            target_para.xpath(f'./w:commentRangeStart[@w:id="{wid}"]', namespaces=NS),
-            target_para.xpath(f'./w:commentRangeEnd[@w:id="{wid}"]', namespaces=NS),
-            target_para.xpath(f'./w:commentReference[@w:id="{wid}"]', namespaces=NS),
+            [node for node in target_para.iter() if node.tag == q("commentRangeStart") and node.get(q("id")) == wid],
+            [node for node in target_para.iter() if node.tag == q("commentRangeEnd") and node.get(q("id")) == wid],
+            [node for node in target_para.iter() if node.tag == q("commentReference") and node.get(q("id")) == wid],
         )
         if any(len(part) != 1 for part in checks):
             raise SystemExit(f"Final comment anchor verification failed at E-{seq:04d}")
