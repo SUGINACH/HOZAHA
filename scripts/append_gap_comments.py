@@ -229,6 +229,7 @@ with zipfile.ZipFile(BASE, "r") as zin:
         raise SystemExit("Comments content-type override missing in base document")
 
     for seq, pnum, wid, severity, category, anchor_text in added_rows:
+        para = paragraphs[pnum - 1]
         checks = (
             para.xpath(f'./w:commentRangeStart[@w:id="{wid}"]', namespaces=NS),
             para.xpath(f'./w:commentRangeEnd[@w:id="{wid}"]', namespaces=NS),
