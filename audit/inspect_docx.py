@@ -16,6 +16,7 @@ FILES = [
 "כתב_יד_עם_הערות_עריכה_E0001-E1002_מתוקן_גופן.docx",
 "כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_ראשונה_E0022-E0054_מתוקן_גופן.docx",
 "כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0080.docx",
+"כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx",
 "המשך_ביקורת_הערות_E0768-E1002_מתוקן_גופן.docx",
 "המשך_ביקורת_הערות_E0768-E0882_מתוקן_גופן.docx",
 "המשך_ביקורת_הערות_E0768-E0841_מתוקן_גופן.docx",
@@ -54,13 +55,28 @@ def inspect(path):
                         kind={q("commentRangeStart"):"start",q("commentRangeEnd"):"end",q("commentReference"):"ref"}[e.tag]
                         anchors[cid][kind]+=1
                         if i not in anchors[cid]["paragraphs"]: anchors[cid]["paragraphs"].append(i)
+            # Recover the exact visible text covered by each comment range.
+            anchor_snippets={}
+            for p in paras:
+                active={}
+                for child in list(p):
+                    if child.tag == q("commentRangeStart"):
+                        active[child.get(q("id"),"?")]=[]
+                    elif child.tag == q("commentRangeEnd"):
+                        cid=child.get(q("id"),"?")
+                        anchor_snippets[cid]="".join(active.pop(cid,[]))
+                    else:
+                        segment=txt(child)
+                        if segment:
+                            for parts in active.values():
+                                parts.append(segment)
             comments=[]
             comment_xml_elements=[]
             if "word/comments.xml" in names:
                 root=ET.fromstring(z.read("word/comments.xml"))
                 for c in root.findall(".//"+q("comment")):
                     cid=c.get(q("id"),"?"); p=c.find(".//"+q("p"))
-                    comments.append({"id":cid,"author":c.get(q("author"),""),"initials":c.get(q("initials"),""),"date":c.get(q("date"),""),"text":txt(c),"paraId":p.get(f"{{{W14}}}paraId") if p is not None else None,"anchor":anchors.get(cid,{"start":0,"end":0,"ref":0,"paragraphs":[]})})
+                    comments.append({"id":cid,"author":c.get(q("author"),""),"initials":c.get(q("initials"),""),"date":c.get(q("date"),""),"text":txt(c),"paraId":p.get(f"{{{W14}}}paraId") if p is not None else None,"anchor":anchors.get(cid,{"start":0,"end":0,"ref":0,"paragraphs":[]}),"anchor_snippet":anchor_snippets.get(cid,"")})
                     comment_xml_elements.append(c)
             d["comment_count"]=len(comments)
             d["comment_authors"]=dict(Counter(c["author"] or "(author missing)" for c in comments))
@@ -198,6 +214,58 @@ def main():
         lines.append(f"- נוסח הפסקה {pnum}: {target_text}")
     lines.append("- באצווה עם כמה הערות לאותה פסקה נדרש anchor_text מדויק וייחודי לכל הערה; אין לעגן את כל הפסקה פעמיים.")
 
+    lines += ["","## אימות עצמאי של עוגני E-0022–E-0105 בקובץ המצטבר",""]
+    final_name="כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx"
+    final_doc=by.get(final_name,{})
+    gap_items=[item for _,items in batches for item in items]
+    if not final_doc.get("exists") or final_doc.get("error"):
+        lines.append(f"- לא ניתן לבדוק: הקובץ המצטבר חסר או נכשל בסריקה ({final_doc.get('error','חסר')}).")
+    else:
+        by_label=defaultdict(list)
+        for c in final_doc.get("all_comments",[]):
+            for label in re.findall(r"E-(\d{4})",c["text"]):
+                by_label[label].append(c)
+        results=[]
+        for item in sorted(gap_items,key=lambda x:int(x["seq"])):
+            seq=int(item["seq"]); label=f"E-{seq:04d}"; matches=by_label.get(label,[])
+            problems=[]
+            if len(matches)!=1:
+                problems.append(f"מספר הערות תואמות: {len(matches)}")
+                c=None
+            else:
+                c=matches[0]
+                expected_p=int(item["p"])
+                actual_ps=c["anchor"]["paragraphs"]
+                if actual_ps != [expected_p]:
+                    problems.append(f"פסקאות עוגן {actual_ps}, צפוי [{expected_p}]")
+                snippet=c.get("anchor_snippet","")
+                expected_text=item.get("anchor_text")
+                if expected_text:
+                    if snippet != expected_text:
+                        problems.append("טקסט הטווח אינו זהה ל־anchor_text")
+                else:
+                    ptexts=final_doc.get("paragraph_texts") or []
+                    expected_para=ptexts[expected_p-1] if 0 < expected_p <= len(ptexts) else None
+                    if expected_para is None or snippet != expected_para:
+                        problems.append("טווח ההערה אינו מכסה בדיוק את כל הפסקה")
+            results.append({"label":label,"paragraph":int(item["p"]),"ok":not problems,"problems":problems,
+                            "snippet":c.get("anchor_snippet","") if c else ""})
+        passed=sum(1 for x in results if x["ok"])
+        failed=[x for x in results if not x["ok"]]
+        lines.append(f"- הערות שנבדקו: {len(results)}; עוגנים מדויקים: {passed}; חריגות: {len(failed)}.")
+        if failed:
+            for item in failed:
+                lines.append(f"- **{item['label']}** (פסקה {item['paragraph']}): {', '.join(item['problems'])}.")
+        else:
+            lines.append("- כל 84 ההערות נמצאו פעם אחת, בפסקת היעד שלהן, עם טווח טקסט התואם בדיוק לנתוני האצווה.")
+        for seq in (90,91,92):
+            item=next((x for x in results if x["label"]==f"E-{seq:04d}"),None)
+            if item:
+                lines.append(f"- {item['label']} — פסקה {item['paragraph']}; טווח שנקרא מתוך DOCX: {item['snippet']}.")
+        lines.append(f"- מספר ההערות בקובץ המצטבר: {final_doc.get('comment_count','לא זמין')}; פסקאות: {final_doc.get('paragraph_count','לא זמין')}.")
+        lines.append(f"- תוויות E: {final_doc.get('E_label_minmax',[])}; כפילויות: {final_doc.get('E_label_duplicates',[])}.")
+        lines.append(f"- גיבוב טקסט גוף כתב־היד: {final_doc.get('body_text_sha256','לא זמין')}.");
+
     lines += ["","## שרשורי תגובות",""]
     replies=False
     for d in ds:
@@ -222,6 +290,7 @@ def main():
         if d.get("tracked_changes_other_parts"): lines.append(f"- שינויים מסומנים בחלקים אחרים: {json.dumps(d['tracked_changes_other_parts'],ensure_ascii=False)}.")
     lines += ["","## מגבלות","",
     "- הערת Word רגילה אינה בהכרח תגובה של המחבר; יש לפרש מחבר, תאריך ותוכן לפי ההקשר.",
+    "- היעדר תגובות משורשרות או tracked changes בקובצי המאגר שנבדקו אינו שולל הכרעות או תיקונים שנמסרו מחוץ לקבצים אלה.",
     "- תגובות משורשרות זוהו לפי paraIdParent בחלקי Word המתאימים.",
     "- hash גוף הטקסט משווה טקסט בפסקאות הראשיות; אינו תחליף לבדיקת עימוד חזותית או לבדיקה הלכתית.",
     "- הדוח בודק שלמות מבנית, לא את נכונות התוכן של ההערות.",""]
@@ -233,7 +302,7 @@ def main():
         f"- ריצה: {os.environ.get('GITHUB_RUN_ID','local')}; commit בסיס: {os.environ.get('GITHUB_SHA','unknown')}.",
         "- נוספו audit/inspect_docx.py ו־workflow ייעודי. שניהם קוראים את קובצי ה־DOCX ואינם משנים אותם.",
         "- הופק דוח_ביקורת_מבנית_DOCX.md: ספירת הערות, מחברים, שרשורים, עוגנים, שינויים מסומנים, גופנים והשוואת גוף כתב־היד.",
-        "- נקודת המשך: לבחון את הערות המחבר והתגובות לפי הדוח; רק לאחר מכן להחליט איזו גרסה תהיה בסיס העבודה. אין לדרוס DOCX בשלב זה.",""]
+        "- בבדיקה זו נכלל גם הקובץ המצטבר E-0022–E-0105; נקודת ההמשך היא מיפוי הפער E-0106–E-0767, תוך שמירה על כל הכרעות המחבר שנמסרו מחוץ למסמכי המאגר.",""]
         log.write_text(old.rstrip()+"\n"+"\n".join(entry),encoding="utf-8")
     print(f"Audited {sum(1 for d in ds if d.get('exists'))}/{len(FILES)} DOCX files.")
 
