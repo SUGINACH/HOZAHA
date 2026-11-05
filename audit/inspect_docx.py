@@ -58,7 +58,7 @@ def inspect(path):
                 root=ET.fromstring(z.read("word/comments.xml"))
                 for c in root.findall(".//"+q("comment")):
                     cid=c.get(q("id"),"?"); p=c.find(".//"+q("p"))
-                    comments.append({"id":cid,"author":c.get("author",""),"initials":c.get("initials",""),"date":c.get("date",""),"text":txt(c),"paraId":p.get(f"{{{W14}}}paraId") if p is not None else None,"anchor":anchors.get(cid,{"start":0,"end":0,"ref":0,"paragraphs":[]})})
+                    comments.append({"id":cid,"author":c.get(q("author"),""),"initials":c.get(q("initials"),""),"date":c.get(q("date"),""),"text":txt(c),"paraId":p.get(f"{{{W14}}}paraId") if p is not None else None,"anchor":anchors.get(cid,{"start":0,"end":0,"ref":0,"paragraphs":[]})})
             d["comment_count"]=len(comments)
             d["comment_authors"]=dict(Counter(c["author"] or "(author missing)" for c in comments))
             nums=[int(c["id"]) for c in comments if c["id"].isdigit()]
@@ -68,6 +68,7 @@ def inspect(path):
             d["E_label_minmax"]=[min(labels),max(labels)] if labels else []
             d["E_label_duplicates"]=sorted(n for n,v in Counter(labels).items() if v>1)
             d["comment_anchor_counts"]=tag_counts(doc,["commentRangeStart","commentRangeEnd","commentReference"])
+            d["commented_paragraphs"]=sorted(i for i,p in enumerate(paras,1) if any(e.tag in (q("commentRangeStart"),q("commentRangeEnd"),q("commentReference")) for e in p.iter()))
             d["comments_with_bad_anchors"]=[{"id":c["id"],"author":c["author"],"labels":re.findall(r"E-\d{4}",c["text"]),**c["anchor"]} for c in comments if any(c["anchor"][k]!=1 for k in ("start","end","ref"))]
             d["all_comments"]=comments
             if path.name=="כתב_יד_עם_הערות_עריכה.docx":
@@ -121,6 +122,9 @@ def main():
         er=d.get("E_label_minmax",[])
         labels=f"{er[0]}–{er[1]} ({d.get('E_label_count',0)})" if er else "—"
         lines.append(f"| {d['name']} | {d.get('bytes',0):,} | {d.get('paragraph_count','?')} | {d.get('comment_count','?')} | {authors} | {labels} | {d.get('zip_test','?')} |")
+    lines += ["","## שגיאות סריקה",""]
+    errors=[f"{d['name']}: {d['error']}" for d in ds if d.get("error")]
+    lines.extend(["- "+e for e in errors] if errors else ["לא נרשמו שגיאות סריקה."])
     base=by.get("כתב_יד_עם_הערות_עריכה.docx",{})
     lines += ["","## השוואת גוף כתב־היד",""]
     for n in FILES[1:5]:
@@ -137,6 +141,33 @@ def main():
         content=c["text"].replace("|","\\|").replace("\n"," ")
         p=", ".join(map(str,c["anchor"]["paragraphs"])) or "עוגן חסר"
         lines.append(f"| {c['id']} | {c['author']} | {c['initials']} | {p} | {content} |")
+    lines += ["","## בדיקת התנגשויות באצוות E-0022–E-0105",""]
+    batches=[]
+    all_targets=defaultdict(list)
+    for bp in sorted(Path("scripts").glob("gap_batch_E*.json")):
+        try:
+            items=json.loads(bp.read_text(encoding="utf-8"))
+            batches.append((bp.name,items))
+            for item in items:
+                all_targets[int(item["p"])].append(int(item["seq"]))
+        except Exception as e:
+            lines.append(f"- שגיאה בקריאת {bp.name}: {type(e).__name__}: {e}")
+    base_doc=by.get("כתב_יד_עם_הערות_עריכה_E0001-E1002_מתוקן_גופן.docx",{})
+    base_ps=set(base_doc.get("commented_paragraphs",[]))
+    for batch_name,items in batches:
+        local=defaultdict(list)
+        for item in items:
+            local[int(item["p"])].append(int(item["seq"]))
+        repeated={p:seqs for p,seqs in local.items() if len(seqs)>1}
+        preexisting={p:seqs for p,seqs in local.items() if p in base_ps}
+        lines.append(f"### {batch_name}")
+        lines.append(f"- מספר הערות: {len(items)}; פסקאות יעד ייחודיות: {len(local)}.")
+        lines.append(f"- פסקאות יעד שכבר מכילות עוגן בקובץ הבסיס: {json.dumps(preexisting,ensure_ascii=False)}.")
+        lines.append(f"- פסקאות יעד החוזרות בתוך האצווה: {json.dumps(repeated,ensure_ascii=False)}.")
+    cross={p:seqs for p,seqs in all_targets.items() if len(seqs)>1}
+    lines.append(f"- חזרות בין כל האצוות: {json.dumps(cross,ensure_ascii=False)}.")
+    lines.append("- מגבלת הבונה: כל הערה חדשה מעוגנת לכל הפסקה, והסקריפט מסרב להוסיף הערה אם הפסקה כבר מכילה סימון הערה כלשהו. לכן חזרה על אותה פסקה או עוגן קודם בפסקת היעד הם חסם בנייה, גם אם תוכן שתי ההערות נוגע למשפטים שונים.")
+
     lines += ["","## שרשורי תגובות",""]
     replies=False
     for d in ds:
@@ -146,7 +177,7 @@ def main():
     if not replies: lines.append("לא זוהו תגובות משורשרות באמצעות commentsExtended.xml. אין בכך לשלול הערות מחבר שהוזנו כהערות Word רגילות.")
     lines += ["","## עוגנים, שינויים מסומנים וגופנים",""]
     for d in ds:
-        if not d["exists"] or d.get("error"): continue
+        if not d["exists"]: continue
         a=d.get("comment_anchor_counts",{})
         lines += [f"### {d['name']}",
         f"- עוגנים: התחלה {a.get('commentRangeStart',0)}, סוף {a.get('commentRangeEnd',0)}, הפניה {a.get('commentReference',0)}.",
