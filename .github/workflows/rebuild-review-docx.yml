@@ -49,6 +49,20 @@ jobs:
       - name: Append session-specific editor comments to Word
         run: python scripts/append_session_comments.py
 
+      - name: Resolve output DOCX path for visual QA
+        shell: bash
+        run: |
+          output="$(python -c 'import json; print(json.load(open("scripts/session_comments.json", encoding="utf-8"))["output_docx"])')"
+          echo "OUTPUT_DOCX=$output" >> "$GITHUB_ENV"
+
+      - name: Upload generated DOCX for visual verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-docx-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DOCX }}
+          if-no-files-found: error
+          retention-days: 2
+
       - name: Commit generated documents and audit report
         shell: bash
         run: |
