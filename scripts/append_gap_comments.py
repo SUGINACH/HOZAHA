@@ -230,9 +230,9 @@ with zipfile.ZipFile(BASE, "r") as zin:
 
     for seq, pnum, wid, severity, category, anchor_text in added_rows:
         checks = (
-            document.xpath(f'.//w:commentRangeStart[@w:id="{wid}"]', namespaces=NS),
-            document.xpath(f'.//w:commentRangeEnd[@w:id="{wid}"]', namespaces=NS),
-            document.xpath(f'.//w:commentReference[@w:id="{wid}"]', namespaces=NS),
+            para.xpath(f'./w:commentRangeStart[@w:id="{wid}"]', namespaces=NS),
+            para.xpath(f'./w:commentRangeEnd[@w:id="{wid}"]', namespaces=NS),
+            para.xpath(f'./w:commentReference[@w:id="{wid}"]', namespaces=NS),
             comments.xpath(f'./w:comment[@w:id="{wid}"]', namespaces=NS),
         )
         if any(len(part) != 1 for part in checks):
@@ -270,9 +270,15 @@ with zipfile.ZipFile(OUT, "r") as check:
         raise SystemExit(f"Corrupt DOCX ZIP member: {bad}")
     d2 = etree.fromstring(check.read("word/document.xml"))
     c2 = etree.fromstring(check.read("word/comments.xml"))
-    for seq, pnum, wid, severity, category in added_rows:
-        if len(d2.xpath(f'.//w:commentRangeStart[@w:id="{wid}"]', namespaces=NS)) != 1:
-            raise SystemExit(f"Final verification failed at E-{seq:04d}")
+    for seq, pnum, wid, severity, category, anchor_text in added_rows:
+        target_para = final_paragraphs[pnum - 1] if "final_paragraphs" in locals() else d2.find(".//" + q("body")).findall(q("p"))[pnum - 1]
+        checks = (
+            target_para.xpath(f'./w:commentRangeStart[@w:id="{wid}"]', namespaces=NS),
+            target_para.xpath(f'./w:commentRangeEnd[@w:id="{wid}"]', namespaces=NS),
+            target_para.xpath(f'./w:commentReference[@w:id="{wid}"]', namespaces=NS),
+        )
+        if any(len(part) != 1 for part in checks):
+            raise SystemExit(f"Final comment anchor verification failed at E-{seq:04d}")
     final_labels = []
     for c in c2.findall(q("comment")):
         final_labels.extend(re.findall(r"E-(\d{4})", "".join(c.xpath(".//w:t/text()", namespaces=NS))))
