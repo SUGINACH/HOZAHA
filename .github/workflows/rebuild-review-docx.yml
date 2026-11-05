@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: \${{ github.workflow }}-\${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -46,17 +46,20 @@ jobs:
       - name: Append first reconstructed gap batch
         run: python scripts/append_gap_comments.py
 
+      - name: Append session-specific editor comments to Word
+        run: python scripts/append_session_comments.py
+
       - name: Commit generated documents and audit report
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- '*.docx' 'דוח_תיקון_גופן_והשלמת_הערות.md' 'דוח_השלמת_פער_הערות_E0022-E0105.md' 'יומן-דחיפות-והמשכיות.md'
+          git add -- '*.docx' 'דוח_תיקון_גופן_והשלמת_הערות.md' 'דוח_השלמת_פער_הערות_E0022-E0105.md' 'דוח_הערות_Word_סשן_*.md' 'יומן-דחיפות-והמשכיות.md'
           if git diff --cached --quiet; then
             echo "No generated changes to commit."
             exit 0
           fi
-          git commit -m "Build cumulative Hebrew review document through E-0105"
+          git commit -m "Build cumulative review DOCX and append session comments"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
