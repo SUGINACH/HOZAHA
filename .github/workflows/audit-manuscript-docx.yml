@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'audit/**'
+      - '*.docx'
       - '.github/workflows/audit-manuscript-docx.yml'
   workflow_dispatch:
 

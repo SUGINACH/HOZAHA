@@ -170,11 +170,33 @@ def main():
     cross={p:seqs for p,seqs in all_targets.items() if len(seqs)>1}
     lines.append(f"- חזרות בין כל האצוות: {json.dumps(cross,ensure_ascii=False)}.")
     for pnum,seqs in cross.items():
-        text_p=(base_doc.get("paragraph_texts") or [])
-        para_text=text_p[pnum-1] if 0 < pnum <= len(text_p) else "(הפסקה לא נמצאה)"
-        lines.append(f"- נוסח פסקה {pnum} (יעד E-{seqs[0]:04d}, E-{seqs[1]:04d}):")
-        lines.append("  " + para_text.replace("\\n"," "))
-    lines.append("- מגבלת הבונה: כל הערה חדשה מעוגנת לכל הפסקה, והסקריפט מסרב להוסיף הערה אם הפסקה כבר מכילה סימון הערה כלשהו. לכן חזרה על אותה פסקה או עוגן קודם בפסקת היעד הם חסם בנייה, גם אם תוכן שתי ההערות נוגע למשפטים שונים.")
+        ptext=(base_doc.get("paragraph_texts") or [])
+        target_text=ptext[pnum-1] if 0 < pnum <= len(ptext) else ""
+        detail=[]
+        intervals=[]
+        for batch_name,items in batches:
+            for item in items:
+                if int(item["p"]) != pnum:
+                    continue
+                anchor=item.get("anchor_text")
+                if anchor:
+                    start=target_text.find(anchor)
+                    end=start+len(anchor) if start>=0 else -1
+                    ambiguous=(start>=0 and target_text.find(anchor,start+1)>=0)
+                else:
+                    start,end=0,len(target_text)
+                    ambiguous=False
+                detail.append({"seq":int(item["seq"]),"anchor_text":anchor or "(כל הפסקה)","start":start,"end":end,"ambiguous":ambiguous})
+                if start>=0 and not ambiguous:
+                    intervals.append((start,end,int(item["seq"])))
+        overlaps=[]
+        for i,(a,b,aseq) in enumerate(intervals):
+            for c,d,bseq in intervals[i+1:]:
+                if max(a,c)<min(b,d):
+                    overlaps.append([aseq,bseq])
+        lines.append(f"- פסקה {pnum}: טווחי עיגון {json.dumps(detail,ensure_ascii=False)}; חפיפות: {json.dumps(overlaps,ensure_ascii=False)}.")
+        lines.append(f"- נוסח הפסקה {pnum}: {target_text}")
+    lines.append("- באצווה עם כמה הערות לאותה פסקה נדרש anchor_text מדויק וייחודי לכל הערה; אין לעגן את כל הפסקה פעמיים.")
 
     lines += ["","## שרשורי תגובות",""]
     replies=False

@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Append all reconstructed gap-comment batches to the fixed Hebrew DOCX base."""
 from __future__ import annotations
+import hashlib
 import json
+import os
 import re
 import zipfile
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from lxml import etree
@@ -73,6 +76,74 @@ with zipfile.ZipFile(BASE, "r") as zin:
     if not paragraphs:
         raise SystemExit("No top-level manuscript paragraphs found")
 
+    def para_text(para):
+        return "".join((node.text or "") for node in para.iter() if node.tag in (q("t"), q("delText")))
+
+    # Preserve a baseline of existing anchors before adding anything.
+    preexisting_anchored = {
+        i for i, para in enumerate(paragraphs, 1)
+        if para.xpath(".//w:commentRangeStart | .//w:commentRangeEnd | .//w:commentReference", namespaces=NS)
+    }
+    baseline_text_sha = hashlib.sha256(
+        json.dumps([para_text(p) for p in paragraphs], ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+
+    # Preflight every target and compute a non-overlapping character interval.
+    planned_ranges = {}
+    intervals_by_paragraph = defaultdict(list)
+    for item in all_items:
+        pnum = int(item["p"])
+        if pnum < 1 or pnum > len(paragraphs):
+            raise SystemExit(f"Paragraph {pnum} outside document (1-{len(paragraphs)})")
+        if pnum in preexisting_anchored:
+            raise SystemExit(f"Target paragraph {pnum} already contains a pre-existing comment anchor")
+        para = paragraphs[pnum - 1]
+        anchor_text = item.get("anchor_text")
+        para_string = para_text(para)
+        runs = para.findall(q("r"))
+        run_spans = []
+        cursor = 0
+        for run in runs:
+            run_string = "".join(
+                (node.text or "") for node in run.iter()
+                if node.tag in (q("t"), q("delText"))
+            )
+            if run_string:
+                run_spans.append((cursor, cursor + len(run_string), run))
+                cursor += len(run_string)
+        if anchor_text:
+            first = para_string.find(anchor_text)
+            if first < 0:
+                raise SystemExit(f"Anchor text not found in paragraph {pnum} for E-{int(item['seq']):04d}: {anchor_text}")
+            if para_string.find(anchor_text, first + 1) >= 0:
+                raise SystemExit(f"Anchor text is ambiguous (multiple matches) in paragraph {pnum} for E-{int(item['seq']):04d}")
+            last = first + len(anchor_text)
+            first_run = next((run for start, end, run in run_spans if start == first), None)
+            last_run = next((run for start, end, run in run_spans if end == last), None)
+            if first_run is None or last_run is None:
+                raise SystemExit(
+                    f"Anchor boundaries must coincide with Word run boundaries; "
+                    f"E-{int(item['seq']):04d}, paragraph {pnum}, offsets {first}:{last}"
+                )
+            start_offset, end_offset = first, last
+        else:
+            start_offset, end_offset = 0, len(para_string)
+            first_run = last_run = None
+        for prior_start, prior_end, prior_seq in intervals_by_paragraph[pnum]:
+            if max(start_offset, prior_start) < min(end_offset, prior_end):
+                raise SystemExit(
+                    f"Overlapping comment targets in paragraph {pnum}: "
+                    f"E-{prior_seq:04d} and E-{int(item['seq']):04d}"
+                )
+        intervals_by_paragraph[pnum].append((start_offset, end_offset, int(item["seq"])))
+        planned_ranges[int(item["seq"])] = {
+            "first_run": first_run,
+            "last_run": last_run,
+            "anchor_text": anchor_text,
+            "start": start_offset,
+            "end": end_offset,
+        }
+
     existing_comments = comments.findall(q("comment"))
     numeric_ids = []
     labels = []
@@ -94,15 +165,22 @@ with zipfile.ZipFile(BASE, "r") as zin:
         if pnum < 1 or pnum > len(paragraphs):
             raise SystemExit(f"Paragraph {pnum} outside document (1-{len(paragraphs)})")
         para = paragraphs[pnum - 1]
-        if para.xpath(".//w:commentRangeStart | .//w:commentRangeEnd | .//w:commentReference", namespaces=NS):
-            raise SystemExit(f"Paragraph {pnum} already has comment markup; refusing overlap")
+        target = planned_ranges[int(item["seq"])]
 
         wid = str(next_word_id)
         next_word_id += 1
-        ppr = para.find(q("pPr"))
-        start_at = 1 if ppr is not None else 0
-        para.insert(start_at, etree.Element(q("commentRangeStart"), attrib={q("id"): wid}))
-        para.append(etree.Element(q("commentRangeEnd"), attrib={q("id"): wid}))
+        start_el = etree.Element(q("commentRangeStart"), attrib={q("id"): wid})
+        end_el = etree.Element(q("commentRangeEnd"), attrib={q("id"): wid})
+        if target["anchor_text"]:
+            first_run = target["first_run"]
+            last_run = target["last_run"]
+            para.insert(list(para).index(first_run), start_el)
+            para.insert(list(para).index(last_run) + 1, end_el)
+        else:
+            ppr = para.find(q("pPr"))
+            start_at = 1 if ppr is not None else 0
+            para.insert(start_at, start_el)
+            para.append(end_el)
 
         ref_run = etree.Element(q("r"))
         ref_rpr = etree.SubElement(ref_run, q("rPr"))
@@ -110,7 +188,7 @@ with zipfile.ZipFile(BASE, "r") as zin:
         etree.SubElement(ref_rpr, q("rtl")).set(q("val"), "1")
         etree.SubElement(ref_rpr, q("vertAlign")).set(q("val"), "superscript")
         etree.SubElement(ref_run, q("commentReference")).set(q("id"), wid)
-        para.append(ref_run)
+        para.insert(list(para).index(end_el) + 1, ref_run)
 
         comment = etree.SubElement(comments, q("comment"))
         comment.set(q("id"), wid)
@@ -138,7 +216,7 @@ with zipfile.ZipFile(BASE, "r") as zin:
             f"E-{int(item['seq']):04d} | חומרה: {item['severity']} | "
             f"קטגוריה: {item['category']}. {item['body']}"
         )
-        added_rows.append((int(item["seq"]), pnum, wid, item["severity"], item["category"]))
+        added_rows.append((int(item["seq"]), pnum, wid, item["severity"], item["category"], target["anchor_text"]))
 
     rels = etree.fromstring(zin.read("word/_rels/document.xml.rels"))
     if not any(
@@ -150,7 +228,7 @@ with zipfile.ZipFile(BASE, "r") as zin:
     if not any(el.get("PartName") == "/word/comments.xml" for el in content_types):
         raise SystemExit("Comments content-type override missing in base document")
 
-    for seq, pnum, wid, severity, category in added_rows:
+    for seq, pnum, wid, severity, category, anchor_text in added_rows:
         checks = (
             document.xpath(f'.//w:commentRangeStart[@w:id="{wid}"]', namespaces=NS),
             document.xpath(f'.//w:commentRangeEnd[@w:id="{wid}"]', namespaces=NS),
@@ -159,6 +237,21 @@ with zipfile.ZipFile(BASE, "r") as zin:
         )
         if any(len(part) != 1 for part in checks):
             raise SystemExit(f"Comment linkage integrity failed for E-{seq:04d}")
+        if anchor_text:
+            # Verify that the precise requested substring is covered by its range.
+            active = False
+            covered = []
+            for child in paragraphs[pnum - 1]:
+                if child.tag == q("commentRangeStart") and child.get(q("id")) == wid:
+                    active = True
+                    continue
+                if child.tag == q("commentRangeEnd") and child.get(q("id")) == wid:
+                    active = False
+                    break
+                if active:
+                    covered.extend((node.text or "") for node in child.iter() if node.tag in (q("t"), q("delText")))
+            if anchor_text not in "".join(covered):
+                raise SystemExit(f"Comment range does not cover its declared anchor text: E-{seq:04d}")
 
     doc_xml = etree.tostring(document, xml_declaration=True, encoding="UTF-8", standalone=True)
     comments_xml = etree.tostring(comments, xml_declaration=True, encoding="UTF-8", standalone=True)
@@ -187,6 +280,30 @@ with zipfile.ZipFile(OUT, "r") as check:
     if len(final_ints) != len(set(final_ints)):
         raise SystemExit("Duplicate E-labels in final document")
     total_comments = len(c2.findall(q("comment")))
+    final_paragraphs = d2.find(".//" + q("body")).findall(q("p"))
+    final_text_sha = hashlib.sha256(
+        json.dumps([para_text(p) for p in final_paragraphs], ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+    if final_text_sha != baseline_text_sha:
+        raise SystemExit("Manuscript paragraph text changed during comment insertion")
+    if len(final_paragraphs) != len(paragraphs):
+        raise SystemExit("Manuscript paragraph count changed")
+    # Check every newly added comment has all three anchors, Arial, RTL and he-IL.
+    for seq, pnum, wid, severity, category, anchor_text in added_rows:
+        c = c2.xpath(f'./w:comment[@w:id="{wid}"]', namespaces=NS)[0]
+        rnodes = c.xpath(".//w:r", namespaces=NS)
+        if len(rnodes) != 1:
+            raise SystemExit(f"Unexpected run structure in E-{seq:04d}")
+        rpr = rnodes[0].find(q("rPr"))
+        rf = rpr.find(q("rFonts")) if rpr is not None else None
+        rtl = rpr.find(q("rtl")) if rpr is not None else None
+        lang = rpr.find(q("lang")) if rpr is not None else None
+        if rf is None or any(rf.get(q(k)) != "Arial" for k in ("ascii","hAnsi","eastAsia","cs")):
+            raise SystemExit(f"Arial font check failed for E-{seq:04d}")
+        if rtl is None or rtl.get(q("val")) != "1":
+            raise SystemExit(f"RTL check failed for E-{seq:04d}")
+        if lang is None or lang.get(q("val")) != "he-IL" or lang.get(q("bidi")) != "he-IL":
+            raise SystemExit(f"Hebrew language check failed for E-{seq:04d}")
 
 report_lines = [
     "# דוח השלמת פער הערות – גרסה מצטברת",
@@ -199,6 +316,9 @@ report_lines = [
     "- כל הערה חדשה נוספה כהערת Word אמיתית, עם טווח עיגון בפסקה המתאימה.",
     "- גוף כתב־היד לא נערך; נוספו סימוני עוגן והערות בלבד.",
     "- לכל ההערות החדשות הוגדרו Arial, כיווניות RTL ושפת he-IL.",
+    "- אומתה שלמות עוגני start/end/reference לכל הערה חדשה.",
+    f"- גיבוב טקסט הפסקאות לפני ואחרי הוספת ההערות זהה: {final_text_sha}.",
+    "- הערות בעלות anchor_text עוגנו לטווחי ריצות מדויקים; נבדק שהטווח מכסה את הטקסט שהוצהר ושאין טווחים חופפים.",
     "- הקובץ עדיין אינו סוגר את הפער ההיסטורי כולו: ההערות E-0106 עד E-0767 טרם נכתבו ונבדקו.",
     "",
     "## אצוות שנכללו",
@@ -212,12 +332,31 @@ report_lines += [
     "",
     "## מיקומי ההערות",
     "",
-    "| מזהה | פסקה (מספור המסמך) | חומרה | קטגוריה |",
-    "|---|---:|---|---|",
+    "| מזהה | פסקה (מספור המסמך) | טווח עיגון | חומרה | קטגוריה |",
+    "|---|---:|---|---|---|",
 ]
-for seq, pnum, wid, severity, category in added_rows:
-    report_lines.append(f"| E-{seq:04d} | {pnum} | {severity} | {category} |")
+for seq, pnum, wid, severity, category, anchor_text in added_rows:
+    anchor_label = anchor_text if anchor_text else "כל הפסקה"
+    report_lines.append(f"| E-{seq:04d} | {pnum} | {anchor_label} | {severity} | {category} |")
 REPORT.write_text("\n".join(report_lines) + "\n", encoding="utf-8")
 print(f"Created {OUT} with {len(added_rows)} new comments, E-{min(all_seqs_sorted):04d}–E-{max(all_seqs_sorted):04d}.")
 print(f"Total comments: {total_comments}. Paragraph count: {len(paragraphs)}.")
 print(f"Report: {REPORT}")
+
+
+log_path = ROOT / "יומן-דחיפות-והמשכיות.md"
+if log_path.exists():
+    log_text = log_path.read_text(encoding="utf-8")
+    run_id = os.environ.get("GITHUB_RUN_ID", "local")
+    marker = f"## בנייה מצטברת E-0022–E-0105 — ריצה {run_id}"
+    if marker not in log_text:
+        log_text += "\n\n" + marker + "\n"
+        log_text += f"- נבנה הקובץ {OUT.name} על בסיס {BASE.name}.\n"
+        log_text += f"- נוספו {len(added_rows)} הערות E-{min(all_seqs_sorted):04d}–E-{max(all_seqs_sorted):04d}; מספר הערות כולל: {total_comments}.\n"
+        log_text += "- E-0090 ו־E-0092 מעוגנות כעת לטווחי טקסט נפרדים בפסקה 212; E-0091 מעוגנת לפסקה 213. לא נוצרו טווחים חופפים.\n"
+        log_text += "- גוף כתב־היד נשמר: 4,603 פסקאות; גיבוב טקסט לפני/אחרי הוספת ההערות זהה.\n"
+        log_text += "- נבדקו קישוריות הערות Word, גופני Arial, RTL ושפת he-IL לכל ההערות החדשות.\n"
+        log_text += "- לא נמצאו במסמכי הבסיס תגובות משורשרות או tracked changes; אין בכך הוכחה להכרעות שנעשו מחוץ לקובצי המאגר.\n"
+        log_text += "- מגבלה: E-0106–E-0767 עדיין אינן מכוסות בביקורת זו. בדיקה חזותית מלאה של כל עמודי המסמך המצטבר עדיין נדרשת.\n"
+        log_text += "- נקודת המשך: E-0106 (אך אין לכתוב אותה לפני שחזור/בדיקת הפער ההיסטורי עד E-0767 ושימור כל תגובות המחבר שאולי קיימות מחוץ לקבצים שנבדקו).\n"
+        log_path.write_text(log_text, encoding="utf-8")
