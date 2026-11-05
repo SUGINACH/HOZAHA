@@ -270,8 +270,9 @@ with zipfile.ZipFile(OUT, "r") as check:
         raise SystemExit(f"Corrupt DOCX ZIP member: {bad}")
     d2 = etree.fromstring(check.read("word/document.xml"))
     c2 = etree.fromstring(check.read("word/comments.xml"))
+    final_paragraphs = d2.find(".//" + q("body")).findall(q("p"))
     for seq, pnum, wid, severity, category, anchor_text in added_rows:
-        target_para = final_paragraphs[pnum - 1] if "final_paragraphs" in locals() else d2.find(".//" + q("body")).findall(q("p"))[pnum - 1]
+        target_para = final_paragraphs[pnum - 1]
         checks = (
             target_para.xpath(f'./w:commentRangeStart[@w:id="{wid}"]', namespaces=NS),
             target_para.xpath(f'./w:commentRangeEnd[@w:id="{wid}"]', namespaces=NS),
@@ -286,7 +287,6 @@ with zipfile.ZipFile(OUT, "r") as check:
     if len(final_ints) != len(set(final_ints)):
         raise SystemExit("Duplicate E-labels in final document")
     total_comments = len(c2.findall(q("comment")))
-    final_paragraphs = d2.find(".//" + q("body")).findall(q("p"))
     final_text_sha = hashlib.sha256(
         json.dumps([para_text(p) for p in final_paragraphs], ensure_ascii=False).encode("utf-8")
     ).hexdigest()
