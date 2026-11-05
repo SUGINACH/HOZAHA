@@ -8,6 +8,10 @@ on:
       - '.github/workflows/rebuild-review-docx.yml'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -53,4 +57,6 @@ jobs:
             exit 0
           fi
           git commit -m "Fix Hebrew review fonts and complete E-1002"
-          git push
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
