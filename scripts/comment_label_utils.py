@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-_COMMENT_LABEL = re.compile(r"^\s*((?:E-\d{4}|S-\d{8}-\d+))\s*\|")
-_SESSION_LABEL = re.compile(r"S-\d{8}-\d+\Z")
+_COMMENT_LABEL = re.compile(r"^\s*((?:E-\d{4}|S-\d{8}-\d{2,}))\s*\|")
+_SESSION_LABEL = re.compile(r"S-\d{8}-\d{2,}\Z")
 
 
 def extract_comment_label(comment_text: str) -> str | None:
