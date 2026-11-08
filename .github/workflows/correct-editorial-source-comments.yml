@@ -24,7 +24,7 @@ permissions:
 jobs:
   correct:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       REVIEW_CORRECTION_CONFIG: review_batches/correct-source-annotations-6.json
     steps:
@@ -36,34 +36,34 @@ jobs:
           python-version: '3.12'
       - name: Install DOCX XML tooling
         run: python -m pip install --disable-pip-version-check lxml
-      - name: Correct verified editorial comment text
-        run: python review/replace_review_comments.py
-      - name: Resolve generated files
-        shell: bash
-        run: |
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          cfg=json.loads(Path(os.environ["REVIEW_CORRECTION_CONFIG"]).read_text(encoding="utf-8"))
-          with open(os.environ["GITHUB_ENV"],"a",encoding="utf-8") as f:
-              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\n")
-              f.write(f"REPORT_PATH={cfg['report_path']}\n")
-          PY
-      - name: Upload corrected cumulative DOCX for verification
-        uses: actions/upload-artifact@v4
-        with:
-          name: corrected-review-docx-${{ github.run_id }}
-          path: ${{ env.OUTPUT_DOCX }}
-          if-no-files-found: error
-          retention-days: 7
-      - name: Commit corrected DOCX, report, and work log
+      - name: Prepare the latest main before generating outputs
         shell: bash
         run: |
           set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+      - name: Correct verified editorial comment and commit without rebase races
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT_DOCX="$(python -c 'import json,os; print(json.load(open(os.environ["REVIEW_CORRECTION_CONFIG"], encoding="utf-8"))["output_docx"])')"
+          REPORT_PATH="$(python -c 'import json,os; print(json.load(open(os.environ["REVIEW_CORRECTION_CONFIG"], encoding="utf-8"))["report_path"])')"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'יומן-דחיפות-והמשכיות.md'
-          git commit -m "Correct verified source references in Word review comments"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          for attempt in 1 2 3; do
+            echo "Correction commit attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            if git cat-file -e "origin/main:$OUTPUT_DOCX" 2>/dev/null; then
+              echo "The corrected DOCX already exists on main; no duplicate output will be generated."
+              exit 0
+            fi
+            python review/replace_review_comments.py
+            git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'יומן-דחיפות-והמשכיות.md'
+            git commit -m "Correct verified source references in Word review comments"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push raced with a new main commit; retrying from the latest main."
+          done
+          exit 1
