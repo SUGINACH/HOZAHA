@@ -119,7 +119,7 @@ def main():
             lang=rpr.find(q("lang")) if rpr is not None else None
             if fonts is None or any(fonts.get(q(k))!="Arial" for k in ("ascii","hAnsi","eastAsia","cs")):
                 raise SystemExit(f"Arial check failed for comment {cid}")
-            if rtl is None or rtl.get(q("val"))!="1": raise SystemExit(f"RTL check failed for comment {cid}")
+            if rtl is None or rtl.get(q("val")) not in (None,"1"): raise SystemExit(f"RTL check failed for comment {cid}")
             if lang is None or lang.get(q("val"))!="he-IL" or lang.get(q("bidi"))!="he-IL":
                 raise SystemExit(f"Hebrew language check failed for comment {cid}")
 
