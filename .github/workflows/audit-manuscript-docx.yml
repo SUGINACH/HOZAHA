@@ -31,12 +31,14 @@ jobs:
         run: python audit/inspect_docx.py
       - name: Extract next manuscript review window without modifying DOCX
         run: python audit/extract_review_window.py
+      - name: Extract next review window from latest cumulative DOCX without modifying it
+        run: python audit/extract_next_review_window.py
       - name: Commit audit report, review window, and update work log
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'חלון-כתב-יד-להמשך-ביקורת-P02555.md' 'יומן-דחיפות-והמשכיות.md'
+          git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'חלון-כתב-יד-להמשך-ביקורת-P02555.md' 'חלון-כתב-יד-להמשך-ביקורת-P02595.md' 'יומן-דחיפות-והמשכיות.md'
           if git diff --cached --quiet; then
             echo "No generated changes."
             exit 0
