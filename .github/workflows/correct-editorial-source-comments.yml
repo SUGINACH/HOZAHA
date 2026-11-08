@@ -1,0 +1,70 @@
+name: Correct identified Word editorial comment source references
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'review_batches/correct-source-annotations.json'
+      - 'review/replace_review_comments.py'
+      - '.github/workflows/correct-editorial-source-comments.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: hozaha-docx-generated-artifacts
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REVIEW_CORRECTION_CONFIG: review_batches/correct-source-annotations.json
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install DOCX XML tooling
+        run: python -m pip install --disable-pip-version-check lxml
+
+      - name: Correct only the two verified editorial comment texts
+        run: python review/replace_review_comments.py
+
+      - name: Resolve generated files
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          cfg=json.loads(Path(os.environ["REVIEW_CORRECTION_CONFIG"]).read_text(encoding="utf-8"))
+          with open(os.environ["GITHUB_ENV"],"a",encoding="utf-8") as f:
+              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\n")
+              f.write(f"REPORT_PATH={cfg['report_path']}\n")
+          PY
+
+      - name: Upload corrected cumulative DOCX for verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-review-docx-\${{ github.run_id }}
+          path: \${{ env.OUTPUT_DOCX }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit corrected DOCX, report, and work log
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'יומן-דחיפות-והמשכיות.md'
+          git commit -m "Correct source references in review comments E-0937 and E-0945"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
