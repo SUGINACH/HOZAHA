@@ -52,8 +52,8 @@ jobs:
       - name: Upload corrected cumulative DOCX for verification
         uses: actions/upload-artifact@v4
         with:
-          name: corrected-review-docx-\${{ github.run_id }}
-          path: \${{ env.OUTPUT_DOCX }}
+          name: corrected-review-docx-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DOCX }}
           if-no-files-found: error
           retention-days: 7
 
