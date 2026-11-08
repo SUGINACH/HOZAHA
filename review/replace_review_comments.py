@@ -160,7 +160,7 @@ def main():
         if marker not in log:
             log+="\n\n"+marker+"\n"
             log+=f"- מסמך בסיס: {base.name}\n- מסמך Word חדש: {out.name}\n"
-            log+="- תוקנו טקסטי ההערות E-0937 ו־E-0945 בלבד; מזהי Word והעוגנים נשמרו.\n"
+            log+="- תוקנו טקסטי ההערות "+", ".join(x["label"] for x in corrections)+" בלבד; מזהי Word והעוגנים נשמרו.\\n"
             log+=f"- מספר הערות נשאר {expected_c}; מספר פסקאות {expected_n}; גוף כתב־היד ללא שינוי ({source_body_hash}).\n"
             log+=f"- דוח: {report.as_posix()}.\n"
             log+=f"- נקודת המשך: {cfg['next_section']}; בסיס ההמשך הוא {out.name}.\n"
