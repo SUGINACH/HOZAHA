@@ -47,8 +47,8 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for attempt in 1 2 3; do
-            echo "Audit commit attempt $attempt"
+          for attempt in 1 2 3 4 5; do
+            echo "Audit refresh attempt $attempt from latest main"
             git fetch origin main
             git reset --hard origin/main
             python audit/inspect_docx.py
@@ -67,6 +67,6 @@ jobs:
             if git push origin HEAD:main; then
               exit 0
             fi
-            echo "Push raced with another update; retrying from origin/main."
+            echo "Push raced with another update; all derived windows will be regenerated from the new main."
           done
           exit 1
