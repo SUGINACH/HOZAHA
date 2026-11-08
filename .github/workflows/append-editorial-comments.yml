@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: append-editorial-comments
+  group: hozaha-docx-generated-artifacts
   cancel-in-progress: false
 
 permissions:
