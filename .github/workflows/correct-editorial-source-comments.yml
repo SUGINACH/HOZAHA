@@ -65,7 +65,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'יומן-דחיפות-והמשכיות.md'
-          git commit -m "Correct source references in review comments E-0937 and E-0945"
+          git commit -m "Correct verified source references in Word review comments"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
