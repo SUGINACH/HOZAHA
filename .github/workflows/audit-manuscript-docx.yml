@@ -55,6 +55,8 @@ jobs:
         run: python audit/extract_P03246_window.py
       - name: Extract P03296 review window from latest cumulative DOCX without modifying it
         run: python audit/extract_P03296_window.py
+      - name: Extract P03346 review window from latest cumulative DOCX without modifying it
+        run: python audit/extract_P03346_window.py
       - name: Regenerate from latest main and commit audit outputs without merge conflicts
         shell: bash
         run: |
@@ -79,7 +81,8 @@ jobs:
             python audit/extract_P03196_window.py
             python audit/extract_P03246_window.py
             python audit/extract_P03296_window.py
-            git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'חלון-כתב-יד-להמשך-ביקורת-P02555.md' 'חלון-כתב-יד-להמשך-ביקורת-P02595.md' 'חלון-כתב-יד-להמשך-ביקורת-P02646.md' 'חלון-כתב-יד-להמשך-ביקורת-P02696.md' 'חלון-כתב-יד-להמשך-ביקורת-P02746.md' 'חלון-כתב-יד-להמשך-ביקורת-P02796.md' 'חלון-כתב-יד-להמשך-ביקורת-P02846.md' 'חלון-כתב-יד-להמשך-ביקורת-P02896.md' 'חלון-כתב-יד-להמשך-ביקורת-P02946.md' 'חלון-כתב-יד-להמשך-ביקורת-P02996.md' 'חלון-כתב-יד-להמשך-ביקורת-P03046.md' 'חלון-כתב-יד-להמשך-ביקורת-P03146.md' 'חלון-כתב-יד-להמשך-ביקורת-P03196.md' 'חלון-כתב-יד-להמשך-ביקורת-P03246.md' 'חלון-כתב-יד-להמשך-ביקורת-P03296.md' 'יומן-דחיפות-והמשכיות.md'
+            python audit/extract_P03346_window.py
+            git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'חלון-כתב-יד-להמשך-ביקורת-P02555.md' 'חלון-כתב-יד-להמשך-ביקורת-P02595.md' 'חלון-כתב-יד-להמשך-ביקורת-P02646.md' 'חלון-כתב-יד-להמשך-ביקורת-P02696.md' 'חלון-כתב-יד-להמשך-ביקורת-P02746.md' 'חלון-כתב-יד-להמשך-ביקורת-P02796.md' 'חלון-כתב-יד-להמשך-ביקורת-P02846.md' 'חלון-כתב-יד-להמשך-ביקורת-P02896.md' 'חלון-כתב-יד-להמשך-ביקורת-P02946.md' 'חלון-כתב-יד-להמשך-ביקורת-P02996.md' 'חלון-כתב-יד-להמשך-ביקורת-P03046.md' 'חלון-כתב-יד-להמשך-ביקורת-P03146.md' 'חלון-כתב-יד-להמשך-ביקורת-P03196.md' 'חלון-כתב-יד-להמשך-ביקורת-P03246.md' 'חלון-כתב-יד-להמשך-ביקורת-P03296.md' 'חלון-כתב-יד-להמשך-ביקורת-P03346.md' 'יומן-דחיפות-והמשכיות.md'
             if git diff --cached --quiet; then
               echo "Audit outputs are already current."
               exit 0
