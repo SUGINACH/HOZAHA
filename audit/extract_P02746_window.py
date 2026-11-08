@@ -5,7 +5,7 @@ from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 import hashlib, json
 
-DOCX=Path("כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695_תיקון_מקורות_E0937-E0974.docx")
+DOCX=Path("כתב_יד_S027_P03246-P03295.docx")
 OUT=Path("חלון-כתב-יד-להמשך-ביקורת-P02746.md")
 W="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 def q(name): return f"{{{W}}}{name}"
@@ -31,7 +31,7 @@ with ZipFile(DOCX) as z:
     if digest!=expected: raise SystemExit(f"Unexpected manuscript-body hash: {digest}")
     comments=ET.fromstring(z.read("word/comments.xml"))
     comment_map={c.get(q("id"),"?"):text(c) for c in comments.findall(".//"+q("comment"))}
-    if len(comment_map)!=549:
+    if len(comment_map)!=592:
         raise SystemExit(f"Unexpected Word comment count: {len(comment_map)}")
     start,end=2741,2796  # P02740–P02795; Word paragraph index is P+1.
     rows=[
@@ -64,4 +64,4 @@ with ZipFile(DOCX) as z:
         for cid,snippet in snippets.items():
             rows += [f"> הערה קיימת (Word ID {cid}; עוגן: {snippet}): {comment_map.get(cid,'[טקסט הערה חסר]')}",""]
 OUT.write_text("\n".join(rows)+"\n",encoding="utf-8")
-print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 549 comments; body hash verified.")
+print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 592 comments; body hash verified.")
