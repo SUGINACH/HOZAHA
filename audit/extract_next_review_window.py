@@ -5,8 +5,8 @@ from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 import hashlib, json
 
-DOCX=Path("כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02595-P02645.docx")
-OUT=Path("חלון-כתב-יד-להמשך-ביקורת-P02646.md")
+DOCX=Path("כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695.docx")
+OUT=Path("חלון-כתב-יד-להמשך-ביקורת-P02696.md")
 W="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 def q(name): return f"{{{W}}}{name}"
 def text(el):
@@ -33,18 +33,18 @@ with ZipFile(DOCX) as z:
     comment_map={}
     for c in cr.findall(".//"+q("comment")):
         comment_map[c.get(q("id"),"?")]=text(c)
-    if len(comment_map)!=548:
+    if len(comment_map)!=549:
         raise SystemExit(f"Unexpected Word comment count: {len(comment_map)}")
-    start,end=2641,2696  # P02640–P02695; Word paragraph index is P+1.
+    start,end=2691,2746  # P02690–P02745; Word paragraph index is P+1.
     rows=[
-        "# חלון כתב־יד להמשך ביקורת — P02646 ואילך","",
+        "# חלון כתב־יד להמשך ביקורת — P02696 ואילך","",
         f"- קובץ מקור: {DOCX.name}",
         f"- מספר פסקאות במסמך: {len(paras)}",
         f"- מספר הערות Word: {len(comment_map)}",
         f"- SHA-256 של גוף כתב־היד: {digest}",
         "- המספור P הוא מספר פסקת כתב־היד; מספר הפסקה ב־Word הוא P+1.",
         "- חולץ לקריאה בלבד מתוך גרסת DOCX העדכנית; קובץ המקור לא שונה.",
-        "- החלון כולל חפיפה P02640–P02645 לצורך שמירת ההקשר, ואת P02646–P02695 להמשך.",
+        "- החלון כולל חפיפה P02690–P02695 לצורך שמירת ההקשר, ואת P02696–P02745 להמשך.",
         "",
     ]
     for n in range(start,end+1):
@@ -66,4 +66,4 @@ with ZipFile(DOCX) as z:
         for cid,snippet in snippets.items():
             rows += [f"> הערה קיימת (Word ID {cid}; עוגן: {snippet}): {comment_map.get(cid,'[טקסט הערה חסר]')}",""]
 OUT.write_text("\n".join(rows)+"\n",encoding="utf-8")
-print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 548 comments; body hash verified.")
+print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 549 comments; body hash verified.")
