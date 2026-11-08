@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      REVIEW_BATCH_CONFIG: review_batches/P02946-P02995.json
+      REVIEW_BATCH_CONFIG: review_batches/P02996-P03045.json
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
