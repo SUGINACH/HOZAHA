@@ -4,8 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'review_batches/**'
-      - '.github/workflows/append-editorial-comments.yml'
+      - 'review_batches/P02646-P02695.json'
   workflow_dispatch:
 
 concurrency:
