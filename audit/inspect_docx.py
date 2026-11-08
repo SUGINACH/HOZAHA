@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only structural audit of manuscript/review DOCX files in HOZAHA."""
+"""Read-only structural audit of manuscript/review DOCX files in HOZAHA, including latest 549-comment round P02646-P02695."""
 from __future__ import annotations
 import hashlib, json, os, re, zipfile
 from collections import Counter, defaultdict
