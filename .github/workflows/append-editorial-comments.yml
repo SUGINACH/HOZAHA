@@ -33,7 +33,7 @@ jobs:
 
       - name: Append comments and validate cumulative DOCX
         env:
-          REVIEW_BATCH_CONFIG: review_batches/P02555-P02571.json
+          REVIEW_BATCH_CONFIG: review_batches/P02595-P02645.json
         run: python review/append_review_comments.py
 
       - name: Resolve generated files
