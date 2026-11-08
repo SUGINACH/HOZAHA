@@ -37,6 +37,8 @@ jobs:
         run: python audit/extract_P02746_window.py
       - name: Extract P02796 review window from corrected cumulative DOCX without modifying it
         run: python audit/extract_P02796_window.py
+      - name: Extract P02846 review window from final source-corrected DOCX without modifying it
+        run: python audit/extract_P02846_window.py
       - name: Regenerate from latest main and commit audit outputs without merge conflicts
         shell: bash
         run: |
@@ -52,7 +54,8 @@ jobs:
             python audit/extract_next_review_window.py
             python audit/extract_P02746_window.py
             python audit/extract_P02796_window.py
-            git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'חלון-כתב-יד-להמשך-ביקורת-P02555.md' 'חלון-כתב-יד-להמשך-ביקורת-P02595.md' 'חלון-כתב-יד-להמשך-ביקורת-P02646.md' 'חלון-כתב-יד-להמשך-ביקורת-P02696.md' 'חלון-כתב-יד-להמשך-ביקורת-P02746.md' 'חלון-כתב-יד-להמשך-ביקורת-P02796.md' 'יומן-דחיפות-והמשכיות.md'
+            python audit/extract_P02846_window.py
+            git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'חלון-כתב-יד-להמשך-ביקורת-P02555.md' 'חלון-כתב-יד-להמשך-ביקורת-P02595.md' 'חלון-כתב-יד-להמשך-ביקורת-P02646.md' 'חלון-כתב-יד-להמשך-ביקורת-P02696.md' 'חלון-כתב-יד-להמשך-ביקורת-P02746.md' 'חלון-כתב-יד-להמשך-ביקורת-P02796.md' 'חלון-כתב-יד-להמשך-ביקורת-P02846.md' 'יומן-דחיפות-והמשכיות.md'
             if git diff --cached --quiet; then
               echo "Audit outputs are already current."
               exit 0
