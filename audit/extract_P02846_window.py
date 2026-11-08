@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Read-only extraction of P02846 onward from the latest corrected cumulative review DOCX."""
+"""Read-only extraction of P02846 onward from the latest source-corrected cumulative review DOCX."""
 from pathlib import Path
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 import hashlib, json
 
-DOCX=Path("כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695_תיקון_מקורות_E0937-E0974.docx")
+DOCX=Path("כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695_תיקון_מקורות_E0937-E0974_E0978-E0995.docx")
 OUT=Path("חלון-כתב-יד-להמשך-ביקורת-P02846.md")
 W="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 def q(name): return f"{{{W}}}{name}"
