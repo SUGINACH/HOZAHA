@@ -6,6 +6,7 @@ on:
     paths:
       - 'review_batches/P02646-P02695.json'
       - 'review_batches/P02896-P02945.json'
+      - 'review_batches/P02946-P02995.json'
       - '.github/workflows/append-editorial-comments.yml'
   workflow_dispatch:
 
@@ -21,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      REVIEW_BATCH_CONFIG: review_batches/P02896-P02945.json
+      REVIEW_BATCH_CONFIG: review_batches/P02946-P02995.json
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
