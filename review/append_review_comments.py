@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Append narrowly anchored editorial comments to an existing cumulative DOCX."""
 from __future__ import annotations
-import hashlib, json, re, zipfile
+import hashlib, json, re, zipfile, os
 from datetime import datetime, timezone
 from pathlib import Path
 from lxml import etree
 
 ROOT=Path(".")
-CONFIG=ROOT/"review_batches"/"P02555-P02571.json"
+CONFIG=Path(os.environ.get("REVIEW_BATCH_CONFIG", "review_batches/P02555-P02571.json"))
 W="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 X="http://www.w3.org/XML/1998/namespace"
 NS={"w":W}
