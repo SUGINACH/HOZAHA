@@ -11,12 +11,13 @@ on:
       - 'review_batches/correct-source-annotations-5.json'
       - 'review_batches/correct-source-annotations-6.json'
       - 'review_batches/correct-source-annotations-7.json'
+      - 'review_batches/correct-source-annotations-8.json'
       - 'review/replace_review_comments.py'
       - '.github/workflows/correct-editorial-source-comments.yml'
   workflow_dispatch:
 
 concurrency:
-  group: hozaha-docx-generated-artifacts
+  group: hozaha-comment-text-corrections-v2
   cancel-in-progress: false
 
 permissions:
@@ -27,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      REVIEW_CORRECTION_CONFIG: review_batches/correct-source-annotations-7.json
+      REVIEW_CORRECTION_CONFIG: review_batches/correct-source-annotations-8.json
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
