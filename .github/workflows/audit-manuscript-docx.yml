@@ -33,17 +33,28 @@ jobs:
         run: python audit/extract_review_window.py
       - name: Extract next review window from latest cumulative DOCX without modifying it
         run: python audit/extract_next_review_window.py
-      - name: Commit audit report, review window, and update work log
+      - name: Regenerate from latest main and commit audit outputs without merge conflicts
         shell: bash
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'חלון-כתב-יד-להמשך-ביקורת-P02555.md' 'חלון-כתב-יד-להמשך-ביקורת-P02595.md' 'חלון-כתב-יד-להמשך-ביקורת-P02646.md' 'יומן-דחיפות-והמשכיות.md'
-          if git diff --cached --quiet; then
-            echo "No generated changes."
-            exit 0
-          fi
-          git commit -m "Extract next manuscript review window"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          for attempt in 1 2 3; do
+            echo "Audit commit attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            python audit/inspect_docx.py
+            python audit/extract_review_window.py
+            python audit/extract_next_review_window.py
+            git add -- 'דוח_ביקורת_מבנית_DOCX.md' 'חלון-כתב-יד-להמשך-ביקורת-P02555.md' 'חלון-כתב-יד-להמשך-ביקורת-P02595.md' 'חלון-כתב-יד-להמשך-ביקורת-P02646.md' 'יומן-דחיפות-והמשכיות.md'
+            if git diff --cached --quiet; then
+              echo "Audit outputs are already current."
+              exit 0
+            fi
+            git commit -m "Refresh DOCX audit and manuscript review windows"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push raced with another update; retrying from origin/main."
+          done
+          exit 1
