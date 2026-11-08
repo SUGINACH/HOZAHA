@@ -33,7 +33,7 @@ with ZipFile(DOCX) as z:
     comment_map={c.get(q("id"),"?"):text(c) for c in root.findall(".//"+q("comment"))}
     if len(comment_map)!=611:
         raise SystemExit(f"Unexpected Word comment count: {len(comment_map)}")
-    start,end=3435,3490  # P03434–P03489; Word paragraph index is P+1.
+    start,end=3441,3496  # P03440–P03495; Word paragraph index is P+1.
     rows=[
         "# חלון כתב־יד להמשך ביקורת — P03446 ואילך","",
         f"- קובץ מקור: {DOCX.name}",
@@ -42,7 +42,7 @@ with ZipFile(DOCX) as z:
         f"- SHA-256 של גוף כתב־היד: {digest}",
         "- המספור P הוא מספר פסקת כתב־היד; מספר הפסקה ב־Word הוא P+1.",
         "- חולץ לקריאה בלבד מן המסמך המצטבר לאחר הוספת ההערות S-20261109-015 עד S-20261109-019; קובץ המקור לא שונה.",
-        "- החלון כולל חפיפה P03434–P03445 לשמירת ההקשר ואת P03446–P03489 להמשך היחידה.",
+        "- החלון כולל חפיפה P03440–P03445 לשמירת ההקשר ואת P03446–P03495 להמשך היחידה.",
         "",
     ]
     for n in range(start,end+1):
