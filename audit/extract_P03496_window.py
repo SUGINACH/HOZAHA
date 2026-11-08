@@ -5,7 +5,7 @@ from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 import hashlib, json
 
-DOCX=Path("כתב_יד_S027_P03496-P03545.docx")
+DOCX=Path("כתב_יד_S027_P03546-P03595.docx")
 OUT=Path("חלון-כתב-יד-להמשך-ביקורת-P03496.md")
 W="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 def q(name): return f"{{{W}}}{name}"
@@ -31,7 +31,7 @@ with ZipFile(DOCX) as z:
     if digest!=expected: raise SystemExit(f"Unexpected manuscript-body hash: {digest}")
     root=ET.fromstring(z.read("word/comments.xml"))
     comment_map={c.get(q("id"),"?"):text(c) for c in root.findall(".//"+q("comment"))}
-    if len(comment_map)!=615:
+    if len(comment_map)!=619:
         raise SystemExit(f"Unexpected Word comment count: {len(comment_map)}")
     start,end=3491,3546  # P03490–P03545; Word paragraph index is P+1.
     rows=[
@@ -41,7 +41,7 @@ with ZipFile(DOCX) as z:
         f"- מספר הערות Word: {len(comment_map)}",
         f"- SHA-256 של גוף כתב־היד: {digest}",
         "- המספור P הוא מספר פסקת כתב־היד; מספר הפסקה ב־Word הוא P+1.",
-        "- חולץ לקריאה בלבד מן המסמך המצטבר לאחר הוספת ההערות S-20261109-015 עד S-20261109-023; קובץ המקור לא שונה.",
+        "- חולץ לקריאה בלבד מן המסמך המצטבר לאחר הוספת ההערות S-20261109-015 עד S-20261109-027; קובץ המקור לא שונה.",
         "- החלון כולל חפיפה P03490–P03495 לשמירת ההקשר ואת P03496–P03545 להמשך היחידה.",
         "",
     ]
@@ -63,4 +63,4 @@ with ZipFile(DOCX) as z:
         for cid,snippet in snippets.items():
             rows += [f"> הערה קיימת (Word ID {cid}; עוגן: {snippet}): {comment_map.get(cid,'[טקסט הערה חסר]')}",""]
 OUT.write_text("\n".join(rows)+"\n",encoding="utf-8")
-print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 615 comments; body hash verified.")
+print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 619 comments; body hash verified.")
