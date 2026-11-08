@@ -1,0 +1,69 @@
+name: Append reviewed editorial comments to cumulative DOCX
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'review_batches/**'
+  workflow_dispatch:
+
+concurrency:
+  group: append-editorial-comments
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install DOCX XML tooling
+        run: python -m pip install --disable-pip-version-check lxml
+
+      - name: Append comments and validate cumulative DOCX
+        run: python review/append_review_comments.py
+
+      - name: Resolve generated files
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          cfg = json.loads(Path("review_batches/P02555-P02571.json").read_text(encoding="utf-8"))
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\n")
+              f.write(f"REPORT_PATH={cfg['report_path']}\n")
+          PY
+
+      - name: Upload cumulative DOCX for visual verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-docx-\${{ github.run_id }}
+          path: \${{ env.OUTPUT_DOCX }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit new DOCX, report, and work log
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'יומן-דחיפות-והמשכיות.md'
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+            exit 0
+          fi
+          git commit -m "Append reviewed Word comments for P02555-P02571"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
