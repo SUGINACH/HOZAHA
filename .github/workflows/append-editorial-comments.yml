@@ -13,6 +13,7 @@ on:
       - 'review_batches/P03196-P03245.json'
       - 'review_batches/P03246-P03295.json'
       - 'review_batches/P03296-P03345.json'
+      - 'review_batches/P03346-P03395.json'
       - 'review_batches/P02946-P02995.json'
       - '.github/workflows/append-editorial-comments.yml'
   workflow_dispatch:
@@ -29,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      REVIEW_BATCH_CONFIG: review_batches/P03296-P03345.json
+      REVIEW_BATCH_CONFIG: review_batches/P03346-P03395.json
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -70,7 +71,7 @@ jobs:
               echo "No generated changes."
               exit 0
             fi
-            git commit -m "Append reviewed Word comments for P03296-P03345"
+            git commit -m "Append reviewed Word comments for P03346-P03395"
             if git push origin HEAD:main; then
               exit 0
             fi
