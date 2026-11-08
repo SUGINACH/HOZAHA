@@ -10,6 +10,11 @@ W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W14 = "http://schemas.microsoft.com/office/word/2010/wordml"
 W15 = "http://schemas.microsoft.com/office/word/2012/wordml"
 def q(local): return f"{{{W}}}{local}"
+def safe_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 FILES = [
 "כתב_יד_עם_הערות_עריכה.docx",
 "כתב_יד_עם_הערות_עריכה_מתוקן_גופן.docx",
@@ -81,7 +86,7 @@ def inspect(path):
                     comment_xml_elements.append(c)
             d["comment_count"]=len(comments)
             d["comment_authors"]=dict(Counter(c["author"] or "(author missing)" for c in comments))
-            nums=[int(c["id"]) for c in comments if c["id"].isdigit()]
+            nums=[n for c in comments if (n:=safe_int(c.get("id"))) is not None]
             d["comment_id_minmax"]=[min(nums),max(nums)] if nums else []
             labels=[int(m.group(1)) for c in comments if (m:=re.match(r"^\s*E-(\d{4})\s*\|",c["text"]))]
             d["E_label_count"]=len(labels)
