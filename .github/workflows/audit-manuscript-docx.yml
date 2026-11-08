@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: audit-manuscript-docx
+  group: hozaha-docx-generated-artifacts
   cancel-in-progress: false
 
 permissions:
