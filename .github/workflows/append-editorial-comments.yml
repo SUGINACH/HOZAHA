@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'review_batches/**'
+      - '.github/workflows/append-editorial-comments.yml'
   workflow_dispatch:
 
 concurrency:
@@ -48,8 +49,8 @@ jobs:
       - name: Upload cumulative DOCX for visual verification
         uses: actions/upload-artifact@v4
         with:
-          name: review-docx-\${{ github.run_id }}
-          path: \${{ env.OUTPUT_DOCX }}
+          name: review-docx-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DOCX }}
           if-no-files-found: error
           retention-days: 7
 
