@@ -6,6 +6,7 @@ on:
     paths:
       - 'review_batches/correct-source-annotations.json'
       - 'review_batches/correct-source-annotations-2.json'
+      - 'review_batches/correct-source-annotations-3.json'
       - 'review/replace_review_comments.py'
       - '.github/workflows/correct-editorial-source-comments.yml'
   workflow_dispatch:
@@ -22,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      REVIEW_CORRECTION_CONFIG: review_batches/correct-source-annotations-2.json
+      REVIEW_CORRECTION_CONFIG: review_batches/correct-source-annotations-3.json
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
