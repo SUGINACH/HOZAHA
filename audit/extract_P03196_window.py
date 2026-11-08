@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Read-only extraction of P03196–P03245 from the latest cumulative reviewed DOCX."""
+"""Read-only extraction of P03196–P03245 from the latest cumulative reviewed DOCX through P03196-P03245."""
 from pathlib import Path
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 import hashlib, json
 
-DOCX=Path("כתב_יד_S027_P03146-P03195.docx")
+DOCX=Path("כתב_יד_S027_P03196-P03245.docx")
 OUT=Path("חלון-כתב-יד-להמשך-ביקורת-P03196.md")
 W="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 def q(name): return f"{{{W}}}{name}"
@@ -31,7 +31,7 @@ with ZipFile(DOCX) as z:
     if digest!=expected: raise SystemExit(f"Unexpected manuscript-body hash: {digest}")
     root=ET.fromstring(z.read("word/comments.xml"))
     comment_map={c.get(q("id"),"?"):text(c) for c in root.findall(".//"+q("comment"))}
-    if len(comment_map)!=580:
+    if len(comment_map)!=587:
         raise SystemExit(f"Unexpected Word comment count: {len(comment_map)}")
     start,end=3197,3246  # P03190–P03245; Word index is P+1.
     rows=[
@@ -41,7 +41,7 @@ with ZipFile(DOCX) as z:
         f"- מספר הערות Word: {len(comment_map)}",
         f"- SHA-256 של גוף כתב־היד: {digest}",
         "- המספור P הוא מספר פסקת כתב־היד; מספר הפסקה ב־Word הוא P+1.",
-        "- חולץ לקריאה בלבד מן המסמך המצטבר לאחר תיקוני המקור והוספת ההערות S-20261108-006 עד S-20261108-036; קובץ המקור לא שונה.",
+        "- חולץ לקריאה בלבד מן המסמך המצטבר לאחר תיקוני המקור והוספת ההערות S-20261108-006 עד S-20261108-043; קובץ המקור לא שונה.",
         "- החלון כולל חפיפה P03190–P03195 לשמירת ההקשר, ואת P03196–P03245 להמשך.",
         "",
     ]
@@ -63,4 +63,4 @@ with ZipFile(DOCX) as z:
         for cid,snippet in snippets.items():
             rows += [f"> הערה קיימת (Word ID {cid}; עוגן: {snippet}): {comment_map.get(cid,'[טקסט הערה חסר]')}",""]
 OUT.write_text("\n".join(rows)+"\n",encoding="utf-8")
-print(f"Wrote {OUT}: P03196–P03245, {end-start+1} paragraphs; 580 comments; body hash verified.")
+print(f"Wrote {OUT}: P03196–P03245, {end-start+1} paragraphs; 587 comments; body hash verified.")
