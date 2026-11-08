@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Read-only extraction of P02946 onward from the latest cumulative reviewed DOCX through P02996-P03045."""
+"""Read-only extraction of P02946 onward from the latest cumulative reviewed DOCX through P03046-P03095."""
 from pathlib import Path
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 import hashlib, json
 
-DOCX=Path("כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695_תיקון_מקורות_E0937-E0974_E0978-E0995_E0991_E0987_P02896-P02945_P02946-P02995_P02996-P03045.docx")
+DOCX=Path("כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695_תיקון_מקורות_E0937-E0974_E0978-E0995_E0991_E0987_P02896-P02945_P02946-P02995_P02996-P03045_P03046-P03095.docx")
 OUT=Path("חלון-כתב-יד-להמשך-ביקורת-P02946.md")
 W="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 def q(name): return f"{{{W}}}{name}"
@@ -31,7 +31,7 @@ with ZipFile(DOCX) as z:
     if digest!=expected: raise SystemExit(f"Unexpected manuscript-body hash: {digest}")
     root=ET.fromstring(z.read("word/comments.xml"))
     comment_map={c.get(q("id"),"?"):text(c) for c in root.findall(".//"+q("comment"))}
-    if len(comment_map)!=562:
+    if len(comment_map)!=569:
         raise SystemExit(f"Unexpected Word comment count: {len(comment_map)}")
     start,end=2941,2996  # P02940–P02995; Word paragraph index is P+1.
     rows=[
@@ -63,4 +63,4 @@ with ZipFile(DOCX) as z:
         for cid,snippet in snippets.items():
             rows += [f"> הערה קיימת (Word ID {cid}; עוגן: {snippet}): {comment_map.get(cid,'[טקסט הערה חסר]')}",""]
 OUT.write_text("\n".join(rows)+"\n",encoding="utf-8")
-print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 562 comments; body hash verified.")
+print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 569 comments; body hash verified.")
