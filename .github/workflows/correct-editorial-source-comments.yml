@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'review_batches/correct-source-annotations.json'
+      - 'review_batches/correct-source-annotations-2.json'
       - 'review/replace_review_comments.py'
       - '.github/workflows/correct-editorial-source-comments.yml'
   workflow_dispatch:
