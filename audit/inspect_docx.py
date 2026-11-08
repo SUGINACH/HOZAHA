@@ -20,6 +20,7 @@ FILES = [
 "המשך_ביקורת_הערות_E0768-E1002_מתוקן_גופן.docx",
 "המשך_ביקורת_הערות_E0768-E0882_מתוקן_גופן.docx",
 "המשך_ביקורת_הערות_E0768-E0841_מתוקן_גופן.docx",
+"כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02555-P02571.docx",
 ]
 def txt(el):
     return "" if el is None else "".join((x.text or "") for x in el.iter() if x.tag in (q("t"), q("delText")))
@@ -146,7 +147,7 @@ def main():
     lines.extend(["- "+e for e in errors] if errors else ["לא נרשמו שגיאות סריקה."])
     base=by.get("כתב_יד_עם_הערות_עריכה.docx",{})
     lines += ["","## השוואת גוף כתב־היד",""]
-    for n in FILES[1:5]:
+    for n in FILES[1:5] + [FILES[-1]]:
         d=by.get(n,{})
         if base.get("body_text_sha256") and d.get("body_text_sha256"):
             same=base["body_text_sha256"]==d["body_text_sha256"] and base.get("paragraph_count")==d.get("paragraph_count")
