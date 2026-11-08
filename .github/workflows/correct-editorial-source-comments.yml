@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      REVIEW_CORRECTION_CONFIG: review_batches/correct-source-annotations.json
+      REVIEW_CORRECTION_CONFIG: review_batches/correct-source-annotations-2.json
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
