@@ -66,4 +66,4 @@ with ZipFile(DOCX) as z:
         for cid,snippet in snippets.items():
             rows += [f"> הערה קיימת (Word ID {cid}; עוגן: {snippet}): {comment_map.get(cid,'[טקסט הערה חסר]')}",""]
 OUT.write_text("\n".join(rows)+"\n",encoding="utf-8")
-print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 546 comments; body hash verified.")
+print(f"Wrote {OUT}: P{start-1:05d}–P{end-1:05d}, {end-start+1} paragraphs; 548 comments; body hash verified.")
