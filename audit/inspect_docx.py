@@ -83,7 +83,7 @@ def inspect(path):
             d["comment_authors"]=dict(Counter(c["author"] or "(author missing)" for c in comments))
             nums=[int(c["id"]) for c in comments if c["id"].isdigit()]
             d["comment_id_minmax"]=[min(nums),max(nums)] if nums else []
-            labels=[int(x) for c in comments for x in re.findall(r"E-(\d{4})",c["text"])]
+            labels=[int(m.group(1)) for c in comments if (m:=re.match(r"^\s*E-(\d{4})\s*\\|",c["text"]))]
             d["E_label_count"]=len(labels)
             d["E_label_minmax"]=[min(labels),max(labels)] if labels else []
             d["E_label_duplicates"]=sorted(n for n,v in Counter(labels).items() if v>1)
