@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      REVIEW_BATCH_CONFIG: review_batches/P02595-P02645.json
+      REVIEW_BATCH_CONFIG: review_batches/P02646-P02695.json
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -66,7 +66,7 @@ jobs:
             echo "No generated changes."
             exit 0
           fi
-          git commit -m "Append reviewed Word comments for P02595-P02645"
+          git commit -m "Append reviewed Word comments for P02646-P02695"
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
