@@ -12,10 +12,10 @@ from pathlib import Path
 from lxml import etree
 
 ROOT = Path(".")
-BASE = ROOT / "כתב_יד_עם_הערות_עריכה_E0001-E1002_מתוקן_גופן.docx"
+BASE = ROOT / "archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_מתוקן_גופן.docx"
 SCRIPTS = ROOT / "scripts"
-OUT = ROOT / "כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx"
-REPORT = ROOT / "דוח_השלמת_פער_הערות_E0022-E0105.md"
+OUT = ROOT / "archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx"
+REPORT = ROOT / "editorial-reports/word-comment-logs/דוח_השלמת_פער_הערות_E0022-E0105.md"
 
 WNS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 XMLNS = "http://www.w3.org/XML/1998/namespace"
@@ -351,7 +351,7 @@ print(f"Total comments: {total_comments}. Paragraph count: {len(paragraphs)}.")
 print(f"Report: {REPORT}")
 
 
-log_path = ROOT / "יומן-דחיפות-והמשכיות.md"
+log_path = ROOT / "project-management/יומן-דחיפות-והמשכיות.md"
 if log_path.exists():
     log_text = log_path.read_text(encoding="utf-8")
     run_id = os.environ.get("GITHUB_RUN_ID", "local")
