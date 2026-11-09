@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   rebuild:
+    if: ${{ !hashFiles('archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx') || !hashFiles('archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261106_P02520-P02554.docx') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -30,14 +31,6 @@ jobs:
 
       - name: Install document tooling
         run: python -m pip install --disable-pip-version-check lxml
-
-      - name: Skip historical rebuild when archived outputs already exist
-        shell: bash
-        run: |
-          if [[ -f 'archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx' ]] && [[ -f 'archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261106_P02520-P02554.docx' ]]; then
-            echo "Historical rebuild outputs already exist in archive/docx; skipping to prevent overwriting archived review artifacts."
-            exit 0
-          fi
 
       - name: Test comment-label parsing and validation
         run: python -m unittest discover -s tests -p 'test_*.py' -v
