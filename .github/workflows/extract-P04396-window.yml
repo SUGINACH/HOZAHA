@@ -1,0 +1,50 @@
+name: Extract next HOZAHA review window P04396
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'כתב_יד_S027_P04346-P04395.docx'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hozaha-extract-P04396
+  cancel-in-progress: false
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Extract and validate the complete next window
+        run: python audit/extract_P04396_window.py
+      - name: Commit from latest main safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            echo "Extraction commit attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            python audit/extract_P04396_window.py
+            git add -- 'review-windows/חלון-כתב-יד-להמשך-ביקורת-P04396.md'
+            if git diff --cached --quiet; then
+              echo "Review window is already current."
+              exit 0
+            fi
+            git commit -m "Extract manuscript review window P04396-P04445"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push raced with a new main commit; retrying from latest main."
+          done
+          exit 1
