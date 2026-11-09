@@ -61,7 +61,7 @@ jobs:
               exit 0
             fi
             python review/replace_review_comments.py
-            git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'יומן-דחיפות-והמשכיות.md'
+            git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'project-management/יומן-דחיפות-והמשכיות.md'
             git commit -m "Correct verified source references in Word review comments"
             if git push origin HEAD:main; then
               exit 0
