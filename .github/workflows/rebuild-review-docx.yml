@@ -31,6 +31,14 @@ jobs:
       - name: Install document tooling
         run: python -m pip install --disable-pip-version-check lxml
 
+      - name: Skip historical rebuild when archived outputs already exist
+        shell: bash
+        run: |
+          if [[ -f 'archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx' ]] && [[ -f 'archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261106_P02520-P02554.docx' ]]; then
+            echo "Historical rebuild outputs already exist in archive/docx; skipping to prevent overwriting archived review artifacts."
+            exit 0
+          fi
+
       - name: Test comment-label parsing and validation
         run: python -m unittest discover -s tests -p 'test_*.py' -v
 
@@ -71,7 +79,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "$OUTPUT_DOCX" 'דוח_הערות_Word_סשן_*.md' 'יומן-דחיפות-והמשכיות.md'
+          git add -- "$OUTPUT_DOCX" 'editorial-reports/word-comment-logs/דוח_הערות_Word_סשן_*.md' 'editorial-reports/word-comment-logs/דוח_השלמת_פער_הערות_E0022-E0105.md' 'project-management/יומן-דחיפות-והמשכיות.md'
           if git diff --cached --quiet; then
             echo "No generated changes to commit."
             exit 0
