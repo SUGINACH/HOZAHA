@@ -1,0 +1,100 @@
+name: Append source citation comment P04577
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'review_batches/P04577-source-citation.json'
+      - '.github/workflows/append-editorial-comments-P04577-reference.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: hozaha-word-docx-P04577-source-citation
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REVIEW_BATCH_CONFIG: review_batches/P04577-source-citation.json
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install DOCX XML tooling
+        run: python -m pip install --disable-pip-version-check lxml
+      - name: Resolve generated paths
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          cfg = json.loads(Path(os.environ["REVIEW_BATCH_CONFIG"]).read_text(encoding="utf-8"))
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\n")
+              f.write(f"BASE_DOCX={cfg['base_docx']}\n")
+              f.write(f"ARCHIVE_DOCX={cfg['archive_docx']}\n")
+              f.write(f"REPORT_PATH={cfg['report_path']}\n")
+              f.write(f"WORKLOG_PATH={cfg['worklog_path']}\n")
+          PY
+      - name: Append comment, archive previous active DOCX, and commit safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            echo "Append/commit attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            if git cat-file -e "origin/main:$OUTPUT_DOCX" 2>/dev/null; then
+              echo "The output DOCX already exists; refusing to append duplicate comments."
+              exit 0
+            fi
+            if ! git cat-file -e "origin/main:$BASE_DOCX" 2>/dev/null; then
+              echo "The expected active base DOCX is missing from origin/main."
+              exit 1
+            fi
+            if git cat-file -e "origin/main:$ARCHIVE_DOCX" 2>/dev/null; then
+              echo "The archive destination already exists; refusing to overwrite it."
+              exit 1
+            fi
+            python review/append_review_comments.py
+            git mv -- "$BASE_DOCX" "$ARCHIVE_DOCX"
+            python - <<'PY'
+          import os
+          from pathlib import Path
+          p = Path("README.md")
+          s = p.read_text(encoding="utf-8")
+          old = os.environ["BASE_DOCX"]
+          new = os.environ["OUTPUT_DOCX"]
+          if s.count(old) != 1:
+              raise SystemExit(f"README active DOCX reference count mismatch: {s.count(old)}")
+          p.write_text(s.replace(old, new), encoding="utf-8")
+          PY
+            git add -- "$OUTPUT_DOCX" "$ARCHIVE_DOCX" "$REPORT_PATH" "$WORKLOG_PATH" README.md
+            if git diff --cached --quiet; then
+              echo "No generated changes."
+              exit 0
+            fi
+            git commit -m "Append P04577 source-citation review comment"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push raced with a new main commit; retrying from latest main."
+          done
+          exit 1
+      - name: Upload cumulative DOCX for verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: hozaha-source-comment-P04577-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DOCX }}
+          if-no-files-found: error
+          retention-days: 7
