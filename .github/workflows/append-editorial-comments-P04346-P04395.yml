@@ -1,0 +1,77 @@
+name: Append reviewed editorial comments P04346-P04395
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'review_batches/P04346-P04395.json'
+      - '.github/workflows/append-editorial-comments-P04346-P04395.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: hozaha-word-docx-P04346-P04395
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REVIEW_BATCH_CONFIG: review_batches/P04346-P04395.json
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install DOCX XML tooling
+        run: python -m pip install --disable-pip-version-check lxml
+      - name: Resolve generated paths
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          cfg = json.loads(Path(os.environ["REVIEW_BATCH_CONFIG"]).read_text(encoding="utf-8"))
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\n")
+              f.write(f"REPORT_PATH={cfg['report_path']}\n")
+          PY
+      - name: Append comments and commit from the latest main safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            echo "Append/commit attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            if git cat-file -e "origin/main:$OUTPUT_DOCX" 2>/dev/null; then
+              echo "The cumulative DOCX already exists; no duplicate comments will be appended."
+              exit 0
+            fi
+            python review/append_review_comments.py
+            git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'project-management/יומן-דחיפות-והמשכיות.md'
+            if git diff --cached --quiet; then
+              echo "No generated changes."
+              exit 0
+            fi
+            git commit -m "Append reviewed Word comments for P04346-P04395"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push raced with a new main commit; retrying from latest main."
+          done
+          exit 1
+      - name: Upload cumulative DOCX for verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-docx-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DOCX }}
+          if-no-files-found: error
+          retention-days: 7
