@@ -6,7 +6,7 @@ from xml.etree import ElementTree as ET
 import hashlib, json
 
 DOCX=Path("כתב_יד_S027_P03246-P03295.docx")
-OUT=Path("חלון-כתב-יד-להמשך-ביקורת-P03146.md")
+OUT = Path("review-windows/חלון-כתב-יד-להמשך-ביקורת-P03146.md")
 W="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 def q(name): return f"{{{W}}}{name}"
 def text(el):
