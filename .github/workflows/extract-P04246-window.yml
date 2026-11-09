@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'כתב_יד_S027_P04196-P04245.docx'
-      - 'כתב_יד_S027_P04196-P04245.docx'
   workflow_dispatch:
 
 permissions:
