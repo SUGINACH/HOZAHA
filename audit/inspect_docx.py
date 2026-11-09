@@ -279,7 +279,7 @@ def main():
             f"- גופני הערות: {json.dumps(final_doc.get('comment_run_fonts',{}),ensure_ascii=False)}; RTL: {json.dumps(final_doc.get('comment_run_rtl',{}),ensure_ascii=False)}; שפות: {json.dumps(final_doc.get('comment_run_languages',{}),ensure_ascii=False)}."
         ]
         active_labels = sorted({int(m.group(1)) for c in final_doc.get("all_comments",[])
-                                if (m:=re.match(r"^\\s*E-(\\d{4})\\s*\\|",c["text"]))})
+                                if (m:=re.match(r"^\s*E-(\d{4})\s*\|",c["text"]))})
         missing_labels = sorted(set(range(1,1003))-set(active_labels))
         missing_ranges=[]
         for value in missing_labels:
@@ -327,7 +327,7 @@ def main():
         old=log.read_text(encoding="utf-8")
         run_id=os.environ.get("GITHUB_RUN_ID","local")
         heading=f"## ביקורת מבנית אוטומטית של קובצי DOCX — ריצה {run_id}"
-        pattern=r"(?ms)^"+re.escape(heading)+r"\\n.*?(?=^## |\\Z)"
+        pattern=r"(?ms)^"+re.escape(heading)+r"\n.*?(?=^## |\Z)"
         old=re.sub(pattern,"",old).rstrip()
         entry=["",heading,"",
         f"- ריצה: {run_id}; commit בסיס: {os.environ.get('GITHUB_SHA','unknown')}.",
@@ -336,7 +336,7 @@ def main():
         "- הדוח כולל מלאי מלא, תקינות ZIP, הערות, מחברים, עוגנים, שינויים מסומנים, גופנים והשוואת גוף כתב־היד.",
         "- הסקריפט קריאתי בלבד ביחס לקובצי DOCX; חלונות הביקורת והדוח הם קובצי פלט נפרדים.",
         "- הכתיבה ליומן idempotent לפי מזהה הריצה: הפעלה חוזרת באותה ריצה אינה מוסיפה סעיף כפול.",""]
-        log.write_text(old+"\\n"+"\\n".join(entry),encoding="utf-8")
+        log.write_text(old+"\n"+"\n".join(entry),encoding="utf-8")
     print(f"Audited {sum(1 for d in ds if d.get('exists'))}/{len(FILES)} DOCX files.")
 
 if __name__=="__main__": main()
