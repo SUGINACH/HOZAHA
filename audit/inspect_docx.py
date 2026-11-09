@@ -138,12 +138,11 @@ def inspect(path):
 def main():
     checked_commit = current_git_commit()
     trigger_commit = os.environ.get("GITHUB_SHA", "unknown")
-    def inspect_with_progress(name):
-        result = inspect(Path(name))
-        print(f"Inspected {name}", flush=True)
-        return result
+    ds=[]
     with ProcessPoolExecutor(max_workers=4) as pool:
-        ds=list(pool.map(inspect_with_progress, FILES))
+        for result in pool.map(inspect, map(Path, FILES)):
+            ds.append(result)
+            print(f"Inspected {result['name']}", flush=True)
     by={d["name"]:d for d in ds}
     lines=["# דוח ביקורת מבנית של מסמכי DOCX — HOZAHA","",
     f"- ריצה: {os.environ.get('GITHUB_RUN_ID','local')}",
