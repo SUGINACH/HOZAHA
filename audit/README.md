@@ -6,7 +6,7 @@
 - מקורות DOCX היסטוריים נקראים מתוך `archive/docx/`.
 - מחלצי החלונות פועלים לפי נקודות הביקורת שבענף, עד לזנב כתב־היד P04596–P04602. מחלץ הזנב העדכני הוא `extract_P04596_window.py`, והוא קורא את המסמך המצטבר הקודם מן הארכיון.
 - `inspect_docx.py` סורק את כל קובצי ה־DOCX שבשורש וב־`archive/docx/`, מפיק דוח אל `editorial-reports/word-comment-logs/` ומעדכן את יומן ההמשכיות ב־`project-management/`.
-- בדוח נרשמים בנפרד ה־commit שנבדק בפועל (`git rev-parse HEAD), לאחר רענון `origin/main), וה־commit שהפעיל את ה־workflow. אין להסתמך על `GITHUB_SHA` לבדו לאחר `git reset --hard origin/main`, משום שהוא מציין את commit ההפעלה המקורי ועלול להיות מיושן.
+- בדוח נרשמים בנפרד ה־commit שנבדק בפועל (`git rev-parse HEAD`), לאחר רענון `origin/main`, וה־commit שהפעיל את ה־workflow. אין להסתמך על `GITHUB_SHA` לבדו לאחר `git reset --hard origin/main`, משום שהוא מציין את commit ההפעלה המקורי ועלול להיות מיושן.
 - ה־workflow `.github/workflows/audit-manuscript-docx.yml` מריץ את הביקורת ואת המחלצים ברצף, עד P04596, ורק לאחר מכן שומר את הדוחות והחלונות שנוצרו.
 - אין להוסיף נתיב קובץ חדש בלי לעדכן גם את ה־workflow המתאים ולוודא שהקובץ קיים.
 
