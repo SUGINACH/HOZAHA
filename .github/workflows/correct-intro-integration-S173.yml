@@ -1,0 +1,83 @@
+name: Correct introduction integration comments in cumulative DOCX
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'review_batches/correct-intro-integration-S173.json'
+      - 'review/replace_review_comments.py'
+      - '.github/workflows/correct-intro-integration-S173.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: hozaha-intro-comment-corrections-v1
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      REVIEW_CORRECTION_CONFIG: review_batches/correct-intro-integration-S173.json
+      ROOT_DOCX: כתב_יד_S027_P04596-P04602.docx
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install DOCX XML tooling
+        run: python -m pip install --disable-pip-version-check lxml
+      - name: Resolve generated paths
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          cfg = json.loads(Path(os.environ["REVIEW_CORRECTION_CONFIG"]).read_text(encoding="utf-8"))
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              f.write(f"BASE_DOCX={cfg['base_docx']}\n")
+              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\n")
+              f.write(f"REPORT_PATH={cfg['report_path']}\n")
+          PY
+      - name: Archive current file, reframe comments, and publish one active DOCX
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions-bot@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            echo "Correction attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            if git cat-file -e "origin/main:$BASE_DOCX" 2>/dev/null; then
+              echo "The archived source already exists; refusing to append corrections twice."
+              exit 0
+            fi
+            if ! git cat-file -e "origin/main:$ROOT_DOCX" 2>/dev/null; then
+              echo "The current cumulative DOCX is missing."
+              exit 1
+            fi
+            git mv "$ROOT_DOCX" "$BASE_DOCX"
+            mkdir -p "$(dirname "$OUTPUT_DOCX")"
+            python review/replace_review_comments.py
+            mv "$OUTPUT_DOCX" "$ROOT_DOCX"
+            git add -- "$BASE_DOCX" "$ROOT_DOCX" "$REPORT_PATH" 'project-management/יומן-דחיפות-והמשכיות.md'
+            git commit -m "Reframe intentional introduction and body repetitions"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push raced with a concurrent update; retrying from latest main."
+          done
+          exit 1
+      - name: Upload corrected cumulative DOCX
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-introduction-integration-${{ github.run_id }}
+          path: ${{ env.ROOT_DOCX }}
+          if-no-files-found: error
+          retention-days: 7
