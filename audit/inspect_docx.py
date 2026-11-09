@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only structural audit of manuscript/review DOCX files in HOZAHA, including latest 549-comment round P02646-P02695."""
+"""Read-only structural audit of every root/archive DOCX, including the active cumulative manuscript."""
 from __future__ import annotations
 import hashlib, json, os, re, zipfile
 from collections import Counter, defaultdict
@@ -15,29 +15,15 @@ def safe_int(value):
         return int(value)
     except (TypeError, ValueError):
         return None
-FILES = [
-"archive/docx/כתב_יד_עם_הערות_עריכה.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_מתוקן_גופן.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_מתוקן_גופן.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_ראשונה_E0022-E0054_מתוקן_גופן.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0080.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx",
-"archive/docx/המשך_ביקורת_הערות_E0768-E1002_מתוקן_גופן.docx",
-"archive/docx/המשך_ביקורת_הערות_E0768-E0882_מתוקן_גופן.docx",
-"archive/docx/המשך_ביקורת_הערות_E0768-E0841_מתוקן_גופן.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02555-P02571.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02595-P02645.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695_תיקון_מקורות_E0937-E0945.docx",
-"archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261108_P02646-P02695_תיקון_מקורות_E0937-E0974.docx",
-]
+FILES = sorted(str(p) for p in [*Path(".").glob("*.docx"), *Path("archive/docx").glob("*.docx")])
+
 def txt(el):
     return "" if el is None else "".join((x.text or "") for x in el.iter() if x.tag in (q("t"), q("delText")))
 def tag_counts(root,names):
     return {n:len(root.findall(".//"+q(n))) for n in names}
 
 def inspect(path):
-    d={"name":path.name,"exists":path.exists()}
+    d={"name":str(path),"exists":path.exists()}
     if not path.exists(): return d
     d["bytes"]=path.stat().st_size
     try:
@@ -154,9 +140,12 @@ def main():
     lines += ["","## שגיאות סריקה",""]
     errors=[f"{d['name']}: {d['error']}" for d in ds if d.get("error")]
     lines.extend(["- "+e for e in errors] if errors else ["לא נרשמו שגיאות סריקה."])
-    base=by.get("archive/docx/כתב_יד_עם_הערות_עריכה.docx",{})
+    base_path="archive/docx/כתב_יד_עם_הערות_עריכה.docx"
+    base=by.get(base_path,{})
     lines += ["","## השוואת גוף כתב־היד",""]
-    for n in FILES[1:5] + [FILES[-1]]:
+    for n in FILES:
+        if n == base_path:
+            continue
         d=by.get(n,{})
         if base.get("body_text_sha256") and d.get("body_text_sha256"):
             same=base["body_text_sha256"]==d["body_text_sha256"] and base.get("paragraph_count")==d.get("paragraph_count")
@@ -225,7 +214,7 @@ def main():
     lines.append("- באצווה עם כמה הערות לאותה פסקה נדרש anchor_text מדויק וייחודי לכל הערה; אין לעגן את כל הפסקה פעמיים.")
 
     lines += ["","## אימות עצמאי של עוגני E-0022–E-0105 בקובץ המצטבר",""]
-    final_name="כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105.docx"
+    final_name="כתב_יד_S027_P04596-P04602.docx"
     final_doc=by.get(final_name,{})
     gap_items=[item for _,items in batches for item in items]
     if not final_doc.get("exists") or final_doc.get("error"):
@@ -276,6 +265,34 @@ def main():
         lines.append(f"- תוויות E: {final_doc.get('E_label_minmax',[])}; כפילויות: {final_doc.get('E_label_duplicates',[])}.")
         lines.append(f"- גיבוב טקסט גוף כתב־היד: {final_doc.get('body_text_sha256','לא זמין')}.");
 
+    lines += ["","## אימות המסמך המצטבר הפעיל",""]
+    if not final_doc.get("exists") or final_doc.get("error"):
+        lines.append(f"- המסמך הפעיל לא נסרק בהצלחה: {final_doc.get('error','קובץ חסר')}.")
+    else:
+        active_same = (final_doc.get("body_text_sha256") == base.get("body_text_sha256")
+                       and final_doc.get("paragraph_count") == base.get("paragraph_count"))
+        lines += [
+            f"- קובץ פעיל: {final_name}; גודל: {final_doc.get('bytes',0):,} bytes; ZIP: {final_doc.get('zip_test','?')}.",
+            f"- פסקאות: {final_doc.get('paragraph_count')}; הערות Word: {final_doc.get('comment_count')}.",
+            f"- גוף כתב־היד לעומת קובץ הבסיס: **{'זהה' if active_same else 'שונה או לא ניתן להשוואה'}**; SHA-256: {final_doc.get('body_text_sha256','לא זמין')}.",
+            f"- עוגנים חריגים: {len(final_doc.get('comments_with_bad_anchors',[]))}; שינויים מסומנים במסמך הראשי: {json.dumps(final_doc.get('tracked_changes_document_xml',{}),ensure_ascii=False)}.",
+            f"- גופני הערות: {json.dumps(final_doc.get('comment_run_fonts',{}),ensure_ascii=False)}; RTL: {json.dumps(final_doc.get('comment_run_rtl',{}),ensure_ascii=False)}; שפות: {json.dumps(final_doc.get('comment_run_languages',{}),ensure_ascii=False)}."
+        ]
+        active_labels = sorted({int(m.group(1)) for c in final_doc.get("all_comments",[])
+                                if (m:=re.match(r"^\\s*E-(\\d{4})\\s*\\|",c["text"]))})
+        missing_labels = sorted(set(range(1,1003))-set(active_labels))
+        missing_ranges=[]
+        for value in missing_labels:
+            if not missing_ranges or value > missing_ranges[-1][-1]+1:
+                missing_ranges.append([value,value])
+            else:
+                missing_ranges[-1][-1]=value
+        missing_text=", ".join(f"{a:04d}" if a==b else f"{a:04d}–{b:04d}" for a,b in missing_ranges) or "אין"
+        lines.append(f"- תוויות E ייחודיות שנמצאו: {len(active_labels)}; טווחים חסרים מתוך E-0001–E-1002: {missing_text}; כפילויות: {final_doc.get('E_label_duplicates',[])}.")
+    root_docx=[p for p in FILES if "/" not in p]
+    archive_docx=[p for p in FILES if p.startswith("archive/docx/")]
+    lines.append(f"- מלאי: {len(root_docx)} קובצי DOCX בשורש; {len(archive_docx)} קובצי DOCX בארכיון; {len(ds)} קבצים נסרקו.")
+
     lines += ["","## שרשורי תגובות",""]
     replies=False
     for d in ds:
@@ -308,12 +325,18 @@ def main():
     log=Path("project-management/יומן-דחיפות-והמשכיות.md")
     if log.exists():
         old=log.read_text(encoding="utf-8")
-        entry=["","## ביקורת מבנית אוטומטית של קובצי DOCX","",
-        f"- ריצה: {os.environ.get('GITHUB_RUN_ID','local')}; commit בסיס: {os.environ.get('GITHUB_SHA','unknown')}.",
-        "- נוספו audit/inspect_docx.py ו־workflow ייעודי. שניהם קוראים את קובצי ה־DOCX ואינם משנים אותם.",
-        "- הופק דוח_ביקורת_מבנית_DOCX.md: ספירת הערות, מחברים, שרשורים, עוגנים, שינויים מסומנים, גופנים והשוואת גוף כתב־היד.",
-        "- בבדיקה זו נכלל גם הקובץ המצטבר E-0022–E-0105; נקודת ההמשך היא מיפוי הפער E-0106–E-0767, תוך שמירה על כל הכרעות המחבר שנמסרו מחוץ למסמכי המאגר.",""]
-        log.write_text(old.rstrip()+"\n"+"\n".join(entry),encoding="utf-8")
+        run_id=os.environ.get("GITHUB_RUN_ID","local")
+        heading=f"## ביקורת מבנית אוטומטית של קובצי DOCX — ריצה {run_id}"
+        pattern=r"(?ms)^"+re.escape(heading)+r"\\n.*?(?=^## |\\Z)"
+        old=re.sub(pattern,"",old).rstrip()
+        entry=["",heading,"",
+        f"- ריצה: {run_id}; commit בסיס: {os.environ.get('GITHUB_SHA','unknown')}.",
+        f"- נסרקו {sum(1 for d in ds if d.get('exists'))}/{len(FILES)} קובצי DOCX בפועל: כל קובצי ה־DOCX שבשורש וב־archive/docx/.",
+        f"- המסמך המצטבר הפעיל נבדק במפורש: {final_name}; {final_doc.get('comment_count','?')} הערות, {final_doc.get('paragraph_count','?')} פסקאות; גוף כתב־היד {'זהה לבסיס' if final_doc.get('body_text_sha256') == base.get('body_text_sha256') else 'דורש בדיקה'}.",
+        "- הדוח כולל מלאי מלא, תקינות ZIP, הערות, מחברים, עוגנים, שינויים מסומנים, גופנים והשוואת גוף כתב־היד.",
+        "- הסקריפט קריאתי בלבד ביחס לקובצי DOCX; חלונות הביקורת והדוח הם קובצי פלט נפרדים.",
+        "- הכתיבה ליומן idempotent לפי מזהה הריצה: הפעלה חוזרת באותה ריצה אינה מוסיפה סעיף כפול.",""]
+        log.write_text(old+"\\n"+"\\n".join(entry),encoding="utf-8")
     print(f"Audited {sum(1 for d in ds if d.get('exists'))}/{len(FILES)} DOCX files.")
 
 if __name__=="__main__": main()
