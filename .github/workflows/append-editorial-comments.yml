@@ -72,7 +72,7 @@ jobs:
               exit 0
             fi
             python review/append_review_comments.py
-            git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'יומן-דחיפות-והמשכיות.md'
+            git add -- "$OUTPUT_DOCX" "$REPORT_PATH" 'project-management/יומן-דחיפות-והמשכיות.md'
             if git diff --cached --quiet; then
               echo "No generated changes."
               exit 0
