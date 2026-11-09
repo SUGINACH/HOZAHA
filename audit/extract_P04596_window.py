@@ -5,7 +5,7 @@ from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 import hashlib, json
 
-DOCX = Path("archive/docx/כתב_יד_S027_P04546-P04595.docx")
+DOCX = Path("כתב_יד_S027_P04596-P04602.docx")
 OUT = Path("review-windows/חלון-כתב-יד-להמשך-ביקורת-P04596.md")
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
@@ -37,8 +37,8 @@ with ZipFile(DOCX) as z:
         raise SystemExit(f"Unexpected manuscript-body hash: {digest}")
     root = ET.fromstring(z.read("word/comments.xml"))
     comment_map = {c.get(q("id"), "?"): text(c) for c in root.findall(".//" + q("comment"))}
-    if len(comment_map) != 756:
-        raise SystemExit(f"Unexpected Word comment count: {len(comment_map)}")
+    if not comment_map:
+        raise SystemExit("Active cumulative DOCX contains no Word comments; refusing to generate a misleading review window.")
     start, end = 4591, 4603  # P04590–P04602; Word paragraph index is P+1.
     rows = [
         "# חלון כתב־יד להמשך ביקורת — P04596 ואילך (זנב כתב־היד)", "",
@@ -69,4 +69,4 @@ with ZipFile(DOCX) as z:
             rows += [f"> הערה קיימת (Word ID {cid}; עוגן: {snippet}): {comment_map.get(cid, '[טקסט הערה חסר]')}", ""]
 OUT.parent.mkdir(parents=True, exist_ok=True)
 OUT.write_text("\n".join(rows) + "\n", encoding="utf-8")
-print(f"Wrote {OUT}: final tail P04596–P04602 (7 paragraphs), 756 comments; body hash verified.")
+print(f"Wrote {OUT}: final tail P04596–P04602 (7 paragraphs), {len(comment_map)} comments from active root DOCX; body hash verified.")
