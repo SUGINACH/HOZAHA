@@ -41,7 +41,8 @@ with ZipFile(DOCX) as z:
         raise SystemExit("Active cumulative DOCX contains no Word comments; refusing to generate a misleading review window.")
     required_labels = (
         "S-20261109-165", "S-20261109-166", "S-20261109-167",
-        "S-20261109-168", "S-20261109-169",
+        "S-20261109-168", "S-20261109-169", "S-20261109-170",
+        "S-20261109-171",
     )
     missing_labels = [
         label for label in required_labels
