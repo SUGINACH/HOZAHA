@@ -4,8 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'audit/extract_P04246_window.py'
-      - '.github/workflows/extract-P04246-window.yml'
+      - 'כתב_יד_S027_P04196-P04245.docx'
       - 'כתב_יד_S027_P04196-P04245.docx'
   workflow_dispatch:
 
