@@ -5,7 +5,7 @@ from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 import hashlib, json
 
-DOCX = Path("כתב_יד_S027_P04146-P04195.docx")
+DOCX = Path("archive/docx/כתב_יד_S027_P04146-P04195.docx")
 OUT = Path("review-windows/חלון-כתב-יד-להמשך-ביקורת-P04196.md")
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
