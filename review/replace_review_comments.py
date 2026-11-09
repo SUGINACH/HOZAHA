@@ -153,7 +153,7 @@ def main():
     report.parent.mkdir(parents=True,exist_ok=True)
     report.write_text("\n".join(lines)+"\n",encoding="utf-8")
 
-    log_path=Path(cfg.get("worklog_path","יומן-דחיפות-והמשכיות.md"))
+    log_path=Path(cfg.get("worklog_path","project-management/יומן-דחיפות-והמשכיות.md"))
     marker=f"## תיקון הערות מקור — {cfg['session_id']}"
     if log_path.exists():
         log=log_path.read_text(encoding="utf-8")
