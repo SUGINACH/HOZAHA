@@ -3,6 +3,7 @@
 from __future__ import annotations
 import hashlib, json, os, re, subprocess, zipfile
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -137,7 +138,13 @@ def inspect(path):
 def main():
     checked_commit = current_git_commit()
     trigger_commit = os.environ.get("GITHUB_SHA", "unknown")
-    ds=[inspect(Path(x)) for x in FILES]; by={d["name"]:d for d in ds}
+    def inspect_with_progress(name):
+        result = inspect(Path(name))
+        print(f"Inspected {name}", flush=True)
+        return result
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        ds=list(pool.map(inspect_with_progress, FILES))
+    by={d["name"]:d for d in ds}
     lines=["# דוח ביקורת מבנית של מסמכי DOCX — HOZAHA","",
     f"- ריצה: {os.environ.get('GITHUB_RUN_ID','local')}",
     f"- commit שנבדק בפועל (HEAD לאחר fetch/reset): {checked_commit}",

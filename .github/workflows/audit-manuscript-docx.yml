@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: hozaha-docx-audit-v3
+  group: hozaha-docx-audit-v4
   cancel-in-progress: false
 
 permissions:
@@ -38,44 +38,19 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             python audit/inspect_docx.py
-            python audit/extract_review_window.py
-            python audit/extract_next_review_window.py
-            python audit/extract_P02746_window.py
-            python audit/extract_P02796_window.py
-            python audit/extract_P02846_window.py
-            python audit/extract_P02896_window.py
-            python audit/extract_P02946_window.py
-            python audit/extract_P02996_window.py
-            python audit/extract_P03046_window.py
-            python audit/extract_P03146_window.py
-            python audit/extract_P03196_window.py
-            python audit/extract_P03246_window.py
-            python audit/extract_P03296_window.py
-            python audit/extract_P03346_window.py
-            python audit/extract_P03396_window.py
-            python audit/extract_P03446_window.py
-            python audit/extract_P03496_window.py
-            python audit/extract_P03546_window.py
-            python audit/extract_P03596_window.py
-            python audit/extract_P03696_window.py
-            python audit/extract_P03746_window.py
-            python audit/extract_P03796_window.py
-            python audit/extract_P03846_window.py
-            python audit/extract_P03896_window.py
-            python audit/extract_P03946_window.py
-            python audit/extract_P03996_window.py
-            python audit/extract_P04046_window.py
-            python audit/extract_P04096_window.py
-            python audit/extract_P04146_window.py
-            python audit/extract_P04196_window.py
-            python audit/extract_P04246_window.py
-            python audit/extract_P04296_window.py
-            python audit/extract_P04346_window.py
-            python audit/extract_P04396_window.py
-            python audit/extract_P04446_window.py
-            python audit/extract_P04496_window.py
-            python audit/extract_P04546_window.py
-            python audit/extract_P04596_window.py
+            python - <<'PY'
+          import concurrent.futures
+          import subprocess
+          import sys
+
+          scripts = ["audit/extract_review_window.py","audit/extract_next_review_window.py","audit/extract_P02746_window.py","audit/extract_P02796_window.py","audit/extract_P02846_window.py","audit/extract_P02896_window.py","audit/extract_P02946_window.py","audit/extract_P02996_window.py","audit/extract_P03046_window.py","audit/extract_P03146_window.py","audit/extract_P03196_window.py","audit/extract_P03246_window.py","audit/extract_P03296_window.py","audit/extract_P03346_window.py","audit/extract_P03396_window.py","audit/extract_P03446_window.py","audit/extract_P03496_window.py","audit/extract_P03546_window.py","audit/extract_P03596_window.py","audit/extract_P03696_window.py","audit/extract_P03746_window.py","audit/extract_P03796_window.py","audit/extract_P03846_window.py","audit/extract_P03896_window.py","audit/extract_P03946_window.py","audit/extract_P03996_window.py","audit/extract_P04046_window.py","audit/extract_P04096_window.py","audit/extract_P04146_window.py","audit/extract_P04196_window.py","audit/extract_P04246_window.py","audit/extract_P04296_window.py","audit/extract_P04346_window.py","audit/extract_P04396_window.py","audit/extract_P04446_window.py","audit/extract_P04496_window.py","audit/extract_P04546_window.py","audit/extract_P04596_window.py"]
+          def run(script):
+              print(f"Extracting {script}", flush=True)
+              subprocess.run([sys.executable, script], check=True)
+
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+              list(pool.map(run, scripts))
+          PY
             git add -- 'editorial-reports/word-comment-logs/דוח_ביקורת_מבנית_DOCX.md' 'review-windows/' 'project-management/יומן-דחיפות-והמשכיות.md'
             if git diff --cached --quiet; then
               echo "Audit outputs are already current."
