@@ -39,9 +39,9 @@ jobs:
           from pathlib import Path
           cfg = json.loads(Path(os.environ["REVIEW_BATCH_CONFIG"]).read_text(encoding="utf-8"))
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
-              f.write(f"BASE_DOCX={cfg['base_docx']}\\n")
-              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\\n")
-              f.write(f"REPORT_PATH={cfg['report_path']}\\n")
+              f.write(f"BASE_DOCX={cfg['base_docx']}\n")
+              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\n")
+              f.write(f"REPORT_PATH={cfg['report_path']}\n")
           PY
       - name: Archive current DOCX, append S-172, and commit safely
         shell: bash
