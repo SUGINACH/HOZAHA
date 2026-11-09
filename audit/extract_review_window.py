@@ -4,7 +4,7 @@ from pathlib import Path
 from zipfile import ZipFile
 from xml.etree import ElementTree as ET
 
-DOCX = Path("כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261106_P02520-P02554.docx")
+DOCX = Path("archive/docx/כתב_יד_עם_הערות_עריכה_E0001-E1002_עם_השלמת_פער_E0022-E0105_סשן_20261106_P02520-P02554.docx")
 OUT = Path("review-windows/חלון-כתב-יד-להמשך-ביקורת-P02555.md")
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 def q(name): return f"{{{W}}}{name}"
