@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read-only structural audit of every root/archive DOCX, including the active cumulative manuscript."""
 from __future__ import annotations
-import hashlib, json, os, re, zipfile
+import hashlib, json, os, re, subprocess, zipfile
 from collections import Counter, defaultdict
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -15,6 +15,17 @@ def safe_int(value):
         return int(value)
     except (TypeError, ValueError):
         return None
+
+def current_git_commit():
+    """Return the checked-out commit, not the possibly stale workflow trigger SHA."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True,
+        )
+        return result.stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return os.environ.get("GITHUB_SHA", "unknown")
 FILES = sorted(str(p) for p in [*Path(".").glob("*.docx"), *Path("archive/docx").glob("*.docx")])
 
 def txt(el):
@@ -124,10 +135,13 @@ def inspect(path):
     return d
 
 def main():
+    checked_commit = current_git_commit()
+    trigger_commit = os.environ.get("GITHUB_SHA", "unknown")
     ds=[inspect(Path(x)) for x in FILES]; by={d["name"]:d for d in ds}
     lines=["# דוח ביקורת מבנית של מסמכי DOCX — HOZAHA","",
     f"- ריצה: {os.environ.get('GITHUB_RUN_ID','local')}",
-    f"- commit שנבדק: {os.environ.get('GITHUB_SHA','unknown')}",
+    f"- commit שנבדק בפועל (HEAD לאחר fetch/reset): {checked_commit}",
+    f"- commit שהפעיל את ה־workflow: {trigger_commit}",
     "- הבדיקה קריאתית בלבד: לא נערך אף קובץ DOCX.",
     "- נבדקו חלקי OOXML: הערות, שרשורים, עוגנים, שינויים מסומנים, סגנונות וגופנים.","",
     "## תמונת מצב לפי קובץ","","| קובץ | גודל | פסקאות | הערות Word | מחברים | תוויות E | ZIP |","|---|---:|---:|---:|---|---:|---|"]
@@ -330,7 +344,7 @@ def main():
         pattern=r"(?ms)^"+re.escape(heading)+r"\n.*?(?=^## |\Z)"
         old=re.sub(pattern,"",old).rstrip()
         entry=["",heading,"",
-        f"- ריצה: {run_id}; commit בסיס: {os.environ.get('GITHUB_SHA','unknown')}.",
+        f"- ריצה: {run_id}; commit שנבדק בפועל: {checked_commit}; commit מפעיל: {trigger_commit}.",
         f"- נסרקו {sum(1 for d in ds if d.get('exists'))}/{len(FILES)} קובצי DOCX בפועל: כל קובצי ה־DOCX שבשורש וב־archive/docx/.",
         f"- המסמך המצטבר הפעיל נבדק במפורש: {final_name}; {final_doc.get('comment_count','?')} הערות, {final_doc.get('paragraph_count','?')} פסקאות; גוף כתב־היד {'זהה לבסיס' if final_doc.get('body_text_sha256') == base.get('body_text_sha256') else 'דורש בדיקה'}.",
         "- הדוח כולל מלאי מלא, תקינות ZIP, הערות, מחברים, עוגנים, שינויים מסומנים, גופנים והשוואת גוף כתב־היד.",
