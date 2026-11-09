@@ -3,7 +3,7 @@
 from __future__ import annotations
 import hashlib, json, os, re, subprocess, zipfile
 from collections import Counter, defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -142,7 +142,7 @@ def main():
         result = inspect(Path(name))
         print(f"Inspected {name}", flush=True)
         return result
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ProcessPoolExecutor(max_workers=4) as pool:
         ds=list(pool.map(inspect_with_progress, FILES))
     by={d["name"]:d for d in ds}
     lines=["# דוח ביקורת מבנית של מסמכי DOCX — HOZAHA","",
