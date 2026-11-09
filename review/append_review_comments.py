@@ -175,7 +175,7 @@ def main():
     report.parent.mkdir(parents=True,exist_ok=True)
     report.write_text("\n".join(lines)+"\n",encoding="utf-8")
 
-    log=ROOT/cfg.get("worklog_path","יומן-דחיפות-והמשכיות.md")
+    log=ROOT/cfg.get("worklog_path","project-management/יומן-דחיפות-והמשכיות.md")
     marker=f"## הערות Word — סשן {cfg['session_id']}"
     if log.exists():
         s=log.read_text(encoding="utf-8")
