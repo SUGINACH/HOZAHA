@@ -39,6 +39,16 @@ with ZipFile(DOCX) as z:
     comment_map = {c.get(q("id"), "?"): text(c) for c in root.findall(".//" + q("comment"))}
     if not comment_map:
         raise SystemExit("Active cumulative DOCX contains no Word comments; refusing to generate a misleading review window.")
+    required_labels = (
+        "S-20261109-165", "S-20261109-166", "S-20261109-167",
+        "S-20261109-168", "S-20261109-169",
+    )
+    missing_labels = [
+        label for label in required_labels
+        if not any(label in comment_text for comment_text in comment_map.values())
+    ]
+    if missing_labels:
+        raise SystemExit("Final-tail review window is stale; missing comment labels: " + ", ".join(missing_labels))
     start, end = 4591, 4603  # P04590–P04602; Word paragraph index is P+1.
     rows = [
         "# חלון כתב־יד להמשך ביקורת — P04596 ואילך (זנב כתב־היד)", "",
