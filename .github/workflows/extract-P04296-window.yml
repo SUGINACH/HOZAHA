@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'כתב_יד_S027_P04246-P04295.docx'
+      - '.github/workflows/extract-P04296-window.yml'
   workflow_dispatch:
 
 permissions:
