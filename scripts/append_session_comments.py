@@ -98,7 +98,7 @@ report.parent.mkdir(parents=True,exist_ok=True)
 lines=[f"# הערות Word — סשן {sid}","",f"- קובץ בסיס: {base.name}",f"- קובץ פלט חדש: {out.name}",f"- הערות לפני התוספת: {len(old)}",f"- הערות שנוספו: {len(added)}",f"- הערות לאחר התוספת: {len(cs)}",f"- מספר פסקאות: {len(ps2)}",f"- גיבוב טקסט גוף כתב־היד לפני ואחרי: {after} (זהה)","- גוף כתב־היד לא נערך; נוספו עוגני הערות Word בלבד.","- אומתו שלושת סוגי העוגנים, גופן Arial, RTL ושפת he-IL.","- מספור ההערות ההיסטורי E-0106–E-0767 לא נוצל.","","| מזהה | פסקה במסמך | חומרה | קטגוריה |","|---|---:|---|---|"]
 for a in added: lines.append(f"| {a['label']} | {a['p']} | {a['severity']} | {a['category']} |")
 report.write_text("\n".join(lines)+"\n",encoding="utf-8")
-log=ROOT/"יומן-דחיפות-והמשכיות.md"
+log=ROOT/"project-management/יומן-דחיפות-והמשכיות.md"
 if log.exists():
     s=log.read_text(encoding="utf-8"); marker=f"## הערות Word — סשן {sid}"
     if marker not in s:
