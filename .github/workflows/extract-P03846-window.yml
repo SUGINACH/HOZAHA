@@ -1,0 +1,42 @@
+name: Extract next HOZAHA review window P03846
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'audit/extract_P03846_window.py'
+      - '.github/workflows/extract-P03846-window.yml'
+      - 'כתב_יד_S027_P03796-P03845.docx'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hozaha-extract-P03846
+  cancel-in-progress: false
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Extract and validate the complete next window
+        run: python audit/extract_P03846_window.py
+      - name: Commit the extracted review window
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- 'review-windows/חלון-כתב-יד-להמשך-ביקורת-P03846.md'
+          if git diff --cached --quiet; then
+            echo "Review window is already current."
+            exit 0
+          fi
+          git commit -m "Extract manuscript review window P03846-P03895"
+          git push origin HEAD:main
