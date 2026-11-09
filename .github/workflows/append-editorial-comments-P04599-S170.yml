@@ -1,0 +1,88 @@
+name: Append list-completeness review note S-170 P04599
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'review_batches/P04599-S170.json'
+  workflow_dispatch:
+
+concurrency:
+  group: hozaha-word-docx-S170-P04599
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      REVIEW_BATCH_CONFIG: review_batches/P04599-S170.json
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install DOCX XML tooling
+        run: python -m pip install --disable-pip-version-check lxml
+      - name: Resolve generated and archive paths
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          cfg = json.loads(Path(os.environ["REVIEW_BATCH_CONFIG"]).read_text(encoding="utf-8"))
+          keys = {
+              "OUTPUT_DOCX": "output_docx",
+              "REPORT_PATH": "report_path",
+              "BASE_DOCX": "base_docx",
+              "SOURCE_ROOT_DOCX": "source_root_docx",
+          }
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              for env_key, cfg_key in keys.items():
+                  f.write(f"{env_key}={cfg[cfg_key]}\n")
+          PY
+      - name: Append comment, archive prior cumulative DOCX, and commit safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            echo "Append/archive attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            if git cat-file -e "origin/main:$BASE_DOCX" 2>/dev/null; then
+              echo "The prior cumulative DOCX is already archived; this batch has been processed."
+              exit 0
+            fi
+            if ! git cat-file -e "origin/main:$SOURCE_ROOT_DOCX" 2>/dev/null; then
+              echo "Expected active cumulative DOCX is missing; refusing to use a stale base."
+              exit 1
+            fi
+            mkdir -p "$(dirname "$BASE_DOCX")"
+            git mv -- "$SOURCE_ROOT_DOCX" "$BASE_DOCX"
+            python review/append_review_comments.py
+            git add -- "$BASE_DOCX" "$OUTPUT_DOCX" "$REPORT_PATH" 'project-management/יומן-דחיפות-והמשכיות.md'
+            if git diff --cached --quiet; then
+              echo "No generated changes."
+              exit 0
+            fi
+            git commit -m "Append list-completeness review note S-170 P04599"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push raced with a new main commit; retrying from latest main."
+          done
+          exit 1
+      - name: Upload updated cumulative DOCX for verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: cumulative-review-docx-S170-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DOCX }}
+          if-no-files-found: error
+          retention-days: 7
