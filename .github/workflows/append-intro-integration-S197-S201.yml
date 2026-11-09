@@ -1,0 +1,85 @@
+name: Append introduction integration review comments S197-S201
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'review_batches/intro-integration-S197-S201.json'
+      - '.github/workflows/append-intro-integration-S197-S201.yml'
+      - 'review/append_review_comments.py'
+  workflow_dispatch:
+
+concurrency:
+  group: hozaha-word-docx-batches-v2
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      REVIEW_BATCH_CONFIG: review_batches/intro-integration-S197-S201.json
+      ROOT_DOCX: כתב_יד_S027_P04596-P04602.docx
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install DOCX XML tooling
+        run: python -m pip install --disable-pip-version-check lxml
+      - name: Resolve generated paths
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          cfg = json.loads(Path(os.environ["REVIEW_BATCH_CONFIG"]).read_text(encoding="utf-8"))
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              f.write(f"BASE_DOCX={cfg['base_docx']}\n")
+              f.write(f"OUTPUT_DOCX={cfg['output_docx']}\n")
+              f.write(f"REPORT_PATH={cfg['report_path']}\n")
+          PY
+      - name: Archive current DOCX, append comments, and commit safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions-bot@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            echo "Append/commit attempt $attempt"
+            git fetch origin main
+            git reset --hard origin/main
+            if git cat-file -e "origin/main:$BASE_DOCX" 2>/dev/null; then
+              echo "This batch archive already exists; refusing to append twice."
+              exit 0
+            fi
+            if ! git cat-file -e "origin/main:$ROOT_DOCX" 2>/dev/null; then
+              echo "Current root DOCX is missing."
+              exit 1
+            fi
+            git mv "$ROOT_DOCX" "$BASE_DOCX"
+            python review/append_review_comments.py
+            git add -- "$BASE_DOCX" "$OUTPUT_DOCX" "$REPORT_PATH" 'project-management/יומן-דחיפות-והמשכיות.md'
+            if git diff --cached --quiet; then
+              echo "No generated changes."
+              exit 0
+            fi
+            git commit -m "Append introduction integration Word comments S197-S201"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push raced with a new main commit; retrying from the latest main."
+          done
+          exit 1
+      - name: Upload cumulative DOCX for verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: intro-integration-S197-S201-${{ github.run_id }}
+          path: ${{ env.ROOT_DOCX }}
+          if-no-files-found: error
+          retention-days: 7
