@@ -56,8 +56,8 @@ jobs:
             echo "Append/archive attempt $attempt"
             git fetch origin main
             git reset --hard origin/main
-            if git cat-file -e "origin/main:$OUTPUT_DOCX" 2>/dev/null; then
-              echo "The updated cumulative DOCX already exists; no duplicate comment will be appended."
+            if git cat-file -e "origin/main:$BASE_DOCX" 2>/dev/null; then
+              echo "The prior cumulative DOCX is already archived; this batch has been processed."
               exit 0
             fi
             if ! git cat-file -e "origin/main:$SOURCE_ROOT_DOCX" 2>/dev/null; then
