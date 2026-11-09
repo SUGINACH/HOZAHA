@@ -37,7 +37,7 @@ with ZipFile(DOCX) as z:
         raise SystemExit(f"Unexpected manuscript-body hash: {digest}")
     root = ET.fromstring(z.read("word/comments.xml"))
     comment_map = {c.get(q("id"), "?"): text(c) for c in root.findall(".//" + q("comment"))}
-    if len(comment_map) != 682:
+    if len(comment_map) != 684:
         raise SystemExit(f"Unexpected Word comment count: {len(comment_map)}")
     start, end = 4041, 4096  # P04040–P04095; Word paragraph index is P+1.
     rows = [
